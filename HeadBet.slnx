@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/.misc/">
+    <File Path=".gitignore" />
+    <File Path="CLAUDE.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/HeadBet.Blazor/HeadBet.Blazor.csproj" />
+    <Project Path="src/HeadBet.Core/HeadBet.Core.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,62 @@
+@page "/ai-models/create"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Novo modelo de IA — HeadBet</PageTitle>
+
+<PageHeader Title="Novo modelo de IA" Icon="@Icons.Material.Filled.Add" Breadcrumbs="@_crumbs" />
+
+<MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+    <MudStack Spacing="3">
+        <MudSelect T="AiProvider" @bind-Value="_model.Provider" Label="Provider" Variant="Variant.Outlined">
+            @foreach (var p in Enum.GetValues<AiProvider>()) { <MudSelectItem Value="@p">@p</MudSelectItem> }
+        </MudSelect>
+        <MudTextField @bind-Value="_model.Name" Label="Nome (identificador)" Variant="Variant.Outlined" Required="true" />
+        <MudTextField @bind-Value="_model.DisplayName" Label="Nome de exibição" Variant="Variant.Outlined" Required="true" />
+        <MudSwitch T="bool" @bind-Value="_model.IsActive" Label="Ativo" Color="Color.Success" />
+        <div class="d-flex" style="gap:.5rem;">
+            <MudButton Variant="Variant.Text" Href="/ai-models">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check"
+                       OnClick="Submit" Disabled="_busy">Salvar</MudButton>
+        </div>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private AiModelFormViewModel _model = new() { IsActive = true };
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Modelos de IA", "/ai-models"),
+        new("Novo", null, disabled: true),
+    ];
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new CreateAiModelCommand
+            {
+                Name = _model.Name,
+                DisplayName = _model.DisplayName,
+                Provider = _model.Provider,
+                IsActive = _model.IsActive,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Modelo cadastrado.", Severity.Success);
+            Nav.NavigateTo("/ai-models");
+        }
+        finally { _busy = false; }
+    }
+}

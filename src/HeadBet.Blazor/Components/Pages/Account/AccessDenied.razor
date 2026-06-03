@@ -1,0 +1,14 @@
+@page "/account/access-denied"
+@layout HeadBet.Blazor.Components.Layout.MainLayout
+@attribute [AllowAnonymous]
+
+<PageTitle>Acesso negado — HeadBet</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="my-12 text-center">
+    <MudIcon Icon="@Icons.Material.Outlined.GppBad" Color="Color.Error" Style="font-size: 6rem;" />
+    <MudText Typo="Typo.h3" Class="mt-6">Acesso negado</MudText>
+    <MudText Class="mt-2 mud-text-secondary">Você não tem permissão para acessar esta página.</MudText>
+    <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6" StartIcon="@Icons.Material.Filled.Home">
+        Voltar para o início
+    </MudButton>
+</MudContainer>

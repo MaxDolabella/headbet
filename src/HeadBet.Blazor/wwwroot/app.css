@@ -1,0 +1,249 @@
+/* HeadBet Blazor - overrides leves do MudBlazor */
+
+html, body {
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* Sticky footer: MainContent vira coluna flex que ocupa pelo menos a altura
+   util (viewport - appbar). O .hb-body cresce, o .hb-footer fica colado embaixo. */
+.hb-main {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - var(--mud-appbar-height, 64px));
+}
+.hb-body {
+    flex: 1 0 auto;
+}
+.hb-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+}
+
+/* Brand no AppBar */
+.hb-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: inherit;
+}
+.hb-brand img {
+    height: 36px;
+    display: block;
+}
+
+/* Card "PageHeader" — alinhamento de titulo + acoes */
+.hb-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Forca DataGrid a respeitar paddings padronizados */
+.mud-data-grid .mud-table-cell {
+    vertical-align: middle;
+}
+
+/* Hover dos rows mais sutil */
+.mud-table-row.mud-table-row-hover:hover {
+    background-color: rgba(255,255,255,0.04) !important;
+}
+
+/* Badges/Chips usados no projeto */
+.hb-mono {
+    font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
+}
+
+/* Lista chave/valor (card de Dados): rótulo à esquerda, valor à direita, em colunas alinhadas */
+.hb-data-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    row-gap: .5rem;
+    column-gap: 1.5rem;
+}
+.hb-data-grid > :nth-child(even) {
+    justify-self: end;
+    text-align: right;
+}
+
+/* ===== Componente de time (TeamDisplay) ===== */
+.hb-team {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    line-height: 1.1;
+}
+.hb-team.home { justify-content: flex-end; text-align: right; }
+.hb-team.away { justify-content: flex-start; text-align: left; }
+
+.hb-team-label {
+    display: inline-flex;
+    align-items: baseline;
+    min-width: 0;
+}
+.hb-team-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hb-team-abbr { display: none; }        /* só aparece em telas estreitas */
+.hb-team-flag {
+    width: 30px;
+    height: 22px;
+    object-fit: contain;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* Telas estreitas: troca nome (e "(sigla)") pela SIGLA, mantendo a bandeira. */
+@media (max-width: 600px) {
+    .hb-team-name,
+    .hb-team-sigla { display: none; }
+    .hb-team-abbr { display: inline; }
+}
+
+/* ===== Componente de jogo (MatchLine) ===== */
+.hb-match-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+}
+.hb-match-header > span + span::before {
+    content: "|";
+    margin-right: 0.5rem;
+    opacity: 0.5;
+}
+
+.hb-match-line {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+}
+.hb-match-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-width: 3.5rem;
+}
+.hb-match-score .hb-score-num {
+    font-size: 1.3rem;
+    font-weight: 600;
+    min-width: 1.25rem;
+    text-align: center;
+}
+.hb-match-score .hb-x {
+    font-weight: 600;
+    color: var(--mud-palette-text-secondary);
+}
+.hb-match-score .hb-score-input { width: 60px; }
+.hb-match-score .hb-score-input input { text-align: center; }
+
+/* Variante densa (listas com muitos jogos) */
+.hb-match-dense .hb-team-flag { width: 26px; height: 20px; }
+.hb-match-dense .hb-match-line { gap: 0.6rem; }
+.hb-match-dense .hb-match-score .hb-score-num { font-size: 1.05rem; }
+
+@media (max-width: 600px) {
+    .hb-match-line { gap: 0.5rem; }
+    .hb-match-score .hb-score-input { width: 52px; }
+}
+
+/* DataGrid: hb-team preenche a célula para justify-content:flex-end funcionar no mandante */
+.mud-data-grid .mud-table-cell .hb-team {
+    width: 100%;
+}
+
+/* DataGrid: alinhamento de header conforme o conteúdo da coluna.
+   No desktop o título do header fica em .sortable-column-header (width:100%) dentro de
+   .column-header (flex, justify-content:space-between). Alinhamos o texto nele e nas
+   células de corpo (td) que usam a mesma classe. */
+.mud-data-grid .mud-table-cell.text-center,
+.mud-data-grid .mud-table-cell.text-center .sortable-column-header { text-align: center !important; }
+.mud-data-grid .mud-table-cell.text-center .column-header { justify-content: center; }
+
+.mud-data-grid .mud-table-cell.text-end,
+.mud-data-grid .mud-table-cell.text-end .sortable-column-header { text-align: right !important; }
+.mud-data-grid .mud-table-cell.text-end .column-header { justify-content: flex-end; }
+
+.mud-data-grid .mud-table-cell.text-start,
+.mud-data-grid .mud-table-cell.text-start .sortable-column-header { text-align: left !important; }
+.mud-data-grid .mud-table-cell.text-start .column-header { justify-content: flex-start; }
+
+/* DataGrid de jogos: min-width força a tabela a transbordar (e o .mud-table-container,
+   que já tem overflow-x:auto, mostra o scroll horizontal) em larguras médias. */
+.hb-matches-grid table { min-width: 820px; }
+
+/* Cards de jogo clicáveis (Pools/Details) */
+.hb-match-card-link {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+.hb-match-card-link:hover {
+    background-color: rgba(255,255,255,0.06) !important;
+}
+
+/* Topo do card de jogo/palpite: grupo/rodada à esquerda, status à direita. */
+.hb-match-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Login / Register page */
+.hb-auth-card {
+    max-width: 420px;
+    margin: 4rem auto;
+}
+
+/* Checkbox simples (usado nos forms de auth — postados via HTML puro) */
+.hb-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--mud-palette-text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+.hb-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--mud-palette-primary);
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Padroniza tamanho do label de MudSwitch / MudCheckBox com o resto dos forms.
+   MudBlazor renderiza o label como mud-typography body1 (1rem) por default. */
+.mud-switch .mud-typography,
+.mud-checkbox .mud-typography {
+    font-size: 0.875rem;
+}
+
+/* Rodapé do "Salvar palpites": empilha no mobile pra não cortar o botão. */
+.hb-bets-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+@media (max-width: 599px) {
+    .hb-bets-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

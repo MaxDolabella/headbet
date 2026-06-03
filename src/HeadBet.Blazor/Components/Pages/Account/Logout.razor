@@ -1,0 +1,18 @@
+@page "/account/logout"
+@layout HeadBet.Blazor.Components.Layout.MainLayout
+@attribute [AllowAnonymous]
+
+<PageTitle>Sair — HeadBet</PageTitle>
+
+<MudPaper Elevation="4" Class="hb-auth-card pa-6 text-center">
+    <MudIcon Icon="@Icons.Material.Filled.Logout" Color="Color.Primary" Style="font-size: 3rem;" />
+    <MudText Typo="Typo.h5" Class="mt-2 mb-2">Sair da conta</MudText>
+    <MudText Class="mud-text-secondary mb-4">Confirme abaixo para encerrar sua sessão.</MudText>
+
+    <form method="post" action="/account/sign-out">
+        <AntiforgeryToken />
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Error" FullWidth="true"
+                   StartIcon="@Icons.Material.Filled.Logout">Confirmar saída</MudButton>
+    </form>
+    <MudButton Href="/" Variant="Variant.Text" FullWidth="true" Class="mt-2">Cancelar</MudButton>
+</MudPaper>

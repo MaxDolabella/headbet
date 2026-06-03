@@ -1,0 +1,12 @@
+@if (IsPaid)
+{
+    <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.AttachMoney">Pago</MudChip>
+}
+else
+{
+    <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Text">Grátis</MudChip>
+}
+
+@code {
+    [Parameter] public bool IsPaid { get; set; }
+}

@@ -1,0 +1,131 @@
+@page "/pools/{Id:guid}/setup-tournament"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Configurar via IA — HeadBet</PageTitle>
+
+@if (_pool is null || _model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Configurar Torneio via IA" Icon="@Icons.Material.Filled.SmartToy" Breadcrumbs="@_crumbs"
+                Subtitle="@($"Bolão: {_pool.Name}")" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width: 720px;">
+        <MudForm @ref="_form" Model="_model">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_model.TournamentName" Label="Nome do Torneio"
+                              Placeholder="Ex: Copa do Mundo 2026" Variant="Variant.Outlined"
+                              Required="true" RequiredError="Nome do torneio é obrigatório."
+                              MaxLength="200"
+                              HelperText="A IA vai buscar times e jogos deste torneio e cadastrá-los automaticamente." />
+
+                <MudSelect T="Guid" @bind-Value="_model.UserApiKeyId" Label="API Key / Modelo" Variant="Variant.Outlined"
+                           Required="true" RequiredError="Selecione uma API Key.">
+                    @foreach (var key in _model.AvailableKeys)
+                    {
+                        <MudSelectItem Value="@key.Id">
+                            @key.AiModelDisplayName (@key.MaskedKey)@(key.IsDefault ? " — padrão" : "")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (_model.AvailableKeys.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                        Nenhuma API Key cadastrada. <MudLink Href="/api-keys/create">Cadastre uma aqui</MudLink>.
+                    </MudAlert>
+                }
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Esta operação pode levar alguns segundos dependendo do modelo selecionado. Todos os times e jogos do torneio serão cadastrados automaticamente.
+                </MudAlert>
+
+                @if (_busy)
+                {
+                    <div class="d-flex align-items-center" style="gap:1rem;">
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        <MudText Class="mud-text-secondary">A IA está processando. Isso pode levar alguns segundos...</MudText>
+                    </div>
+                }
+
+                <div class="d-flex" style="gap:.5rem;">
+                    <MudButton Variant="Variant.Text" Href="@($"/pools/{Id}")" Disabled="_busy">Cancelar</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.SmartToy"
+                               OnClick="Submit" Disabled="@(_busy || _model.AvailableKeys.Count == 0)">
+                        @(_busy ? "Gerando..." : "Gerar Times e Jogos")
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private PoolDetailsViewModel? _pool;
+    private SetupTournamentFormViewModel? _model;
+    private MudForm _form = default!;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pool = await Bus.SendAsync(new GetPoolDetailsQuery(Id));
+        if (_pool is null || !_pool.IsAdmin)
+        {
+            Nav.NavigateTo("/pools");
+            return;
+        }
+
+        var keys = await Bus.SendAsync(new ListUserApiKeysQuery());
+        _model = new SetupTournamentFormViewModel
+        {
+            PoolId = Id,
+            AvailableKeys = keys,
+            UserApiKeyId = keys.FirstOrDefault(k => k.IsDefault)?.Id ?? Guid.Empty,
+        };
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_pool.Name, $"/pools/{Id}"),
+            new("Configurar via IA", null, disabled: true),
+        ];
+    }
+
+    private async Task Submit()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _busy = true;
+        try
+        {
+            var cmd = new SetupTournamentCommand
+            {
+                PoolId = Id,
+                TournamentName = _model!.TournamentName,
+                UserApiKeyId = _model.UserApiKeyId,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            var d = result.Data!;
+            Snackbar.Add($"Torneio configurado: {d.Teams.Count} times e {d.Matches.Count} jogos cadastrados via IA.", Severity.Success);
+            Nav.NavigateTo($"/pools/{Id}");
+        }
+        finally { _busy = false; }
+    }
+}

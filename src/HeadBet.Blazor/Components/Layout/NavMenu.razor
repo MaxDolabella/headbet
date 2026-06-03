@@ -1,0 +1,103 @@
+@using HeadBet.Core.Domain
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IBus Bus
+
+<AuthorizeView>
+    <Authorized>
+        <MudNavMenu>
+            <MudNavLink Href="/pools" Icon="@Icons.Material.Filled.EmojiEvents" Match="NavLinkMatch.All">Bolões</MudNavLink>
+
+            @if (_poolId is { } poolId)
+            {
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.overline" Class="px-4 mud-text-secondary">Bolão atual</MudText>
+                <MudNavLink Href="@($"/pools/{poolId}/matches")" Icon="@Icons.Material.Filled.SportsSoccer" Match="NavLinkMatch.Prefix">Jogos</MudNavLink>
+                <MudNavLink Href="@($"/pools/{poolId}/bets")" Icon="@Icons.Material.Filled.Casino" Match="NavLinkMatch.Prefix">Palpites</MudNavLink>
+                <MudNavLink Href="@($"/pools/{poolId}/ranking")" Icon="@Icons.Material.Filled.BarChart" Match="NavLinkMatch.Prefix">Ranking</MudNavLink>
+                @if (_adminNav?.IsAdmin == true)
+                {
+                    <MudNavLink Href="@($"/pools/{poolId}/members")" Icon="@Icons.Material.Filled.People" Match="NavLinkMatch.Prefix">
+                        <div class="d-flex align-items-center justify-content-between" style="gap:.5rem;">
+                            <span>Participantes</span>
+                            @if (_adminNav.PendingCount > 0)
+                            {
+                                <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">@_adminNav.PendingCount</MudChip>
+                            }
+                        </div>
+                    </MudNavLink>
+                }
+                <MudDivider Class="my-2" />
+            }
+
+            @* API Keys oculto temporariamente — provavelmente não será usado tão cedo.
+               Página continua em /api-keys; basta descomentar para reativar. *@
+            @* <MudNavLink Href="/api-keys" Icon="@Icons.Material.Filled.VpnKey">API Keys</MudNavLink> *@
+            <MudNavLink Href="/guide" Icon="@Icons.Material.Filled.MenuBook">Guia</MudNavLink>
+
+            <AuthorizeView Roles="@Roles.ADMIN" Context="adminCtx">
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.overline" Class="px-4 mud-text-secondary">Administração</MudText>
+                <MudNavLink Href="/ai-models" Icon="@Icons.Material.Filled.SmartToy">Modelos de IA</MudNavLink>
+                <MudNavLink Href="/users" Icon="@Icons.Material.Filled.People">Usuários</MudNavLink>
+            </AuthorizeView>
+
+            <MudDivider Class="my-2" />
+            <MudNavLink Href="/account/logout" Icon="@Icons.Material.Filled.Logout">Sair</MudNavLink>
+        </MudNavMenu>
+    </Authorized>
+    <NotAuthorized>
+        <MudNavMenu>
+            <MudNavLink Href="/pools" Icon="@Icons.Material.Filled.EmojiEvents">Bolões públicos</MudNavLink>
+            <MudNavLink Href="/account/login" Icon="@Icons.Material.Filled.Login">Entrar</MudNavLink>
+            <MudNavLink Href="/account/register" Icon="@Icons.Material.Filled.PersonAdd">Criar conta</MudNavLink>
+        </MudNavMenu>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private Guid? _poolId;
+    private PoolAdminNavViewModel? _adminNav;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        _poolId = ResolvePoolId(Nav.Uri);
+        await LoadAdminNav();
+    }
+
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        var newId = ResolvePoolId(e.Location);
+        if (newId != _poolId)
+        {
+            _poolId = newId;
+            await LoadAdminNav();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadAdminNav()
+    {
+        _adminNav = _poolId is { } poolId
+            ? await Bus.SendAsync(new GetPoolAdminNavQuery(poolId))
+            : null;
+    }
+
+    // Extrai o GUID do bolão de rotas como /pools/{guid}, /pools/{guid}/matches, /pools/{guid}/bets...
+    private Guid? ResolvePoolId(string uri)
+    {
+        var relative = Nav.ToBaseRelativePath(uri);
+        var path = relative.Split('?', '#')[0];
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length >= 2
+            && string.Equals(segments[0], "pools", StringComparison.OrdinalIgnoreCase)
+            && Guid.TryParse(segments[1], out var id))
+        {
+            return id;
+        }
+        return null;
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

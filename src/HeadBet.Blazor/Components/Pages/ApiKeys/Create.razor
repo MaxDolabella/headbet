@@ -1,0 +1,88 @@
+@page "/api-keys/create"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Nova API Key — HeadBet</PageTitle>
+
+@if (_models is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Nova API Key" Icon="@Icons.Material.Filled.Add" Breadcrumbs="@_crumbs" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+        <MudStack Spacing="3">
+            <MudSelect T="Guid?" @bind-Value="_selectedAiModelId" Label="Modelo de IA"
+                       Variant="Variant.Outlined" Required="true"
+                       RequiredError="Modelo de IA é obrigatório.">
+                @foreach (var grp in _models.GroupBy(m => m.Provider))
+                {
+                    <MudSelectItem T="Guid?" Value="null" Disabled="true">
+                        <MudText Typo="Typo.overline" Class="mud-text-secondary"><b>@grp.Key</b></MudText>
+                    </MudSelectItem>
+                    @foreach (var aiModel in grp)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)aiModel.Id)">@aiModel.DisplayName (@aiModel.Name)</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_model.ApiKey" Label="API Key" InputType="InputType.Password"
+                          Variant="Variant.Outlined" Required="true" Placeholder="sk-..."
+                          HelperText="A chave é armazenada de forma segura e nunca exibida por completo." />
+            <MudSwitch T="bool" @bind-Value="_model.IsDefault" Label="Definir como padrão" Color="Color.Primary" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Ao definir como padrão, qualquer outra API Key padrão será desmarcada.
+            </MudText>
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="/api-keys">Cancelar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check"
+                           OnClick="Submit" Disabled="_busy">Salvar</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private List<AiModelListViewModel>? _models;
+    private UserApiKeyFormViewModel _model = new();
+    private Guid? _selectedAiModelId;
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("API Keys", "/api-keys"),
+        new("Nova", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+        => _models = (await Bus.SendAsync(new ListAiModelsQuery())).Where(m => m.IsActive).ToList();
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new CreateUserApiKeyCommand
+            {
+                AiModelId = _selectedAiModelId ?? Guid.Empty,
+                ApiKey = _model.ApiKey,
+                IsDefault = _model.IsDefault,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("API Key cadastrada.", Severity.Success);
+            Nav.NavigateTo("/api-keys");
+        }
+        finally { _busy = false; }
+    }
+}

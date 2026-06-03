@@ -1,0 +1,126 @@
+@page "/pools/{Id:guid}/setup-tournament-wizard"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+
+<PageTitle>Configurar Torneio — Wizard</PageTitle>
+
+@if (_vm is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Configurar Torneio — Passo 1 de 2"
+                Icon="@Icons.Material.Filled.Checklist"
+                Subtitle="@($"Bolão: {_vm.PoolName}")"
+                Breadcrumbs="@_crumbs" HelpAnchor="wizard" />
+
+    <MudPaper Elevation="0" Class="pa-4 mb-4">
+        <MudTextField T="string" @bind-Value="_search" Label="Filtrar competição"
+                      Placeholder="Nome, código ou país (ex: World Cup, BSA, PL)..."
+                      Variant="Variant.Outlined" Immediate="true" Clearable="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+            Total: @_vm.CompetitionsByArea.Sum(g => g.Competitions.Count) competições em @_vm.CompetitionsByArea.Count áreas.
+        </MudText>
+    </MudPaper>
+
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+        Os nomes de competições, times e jogos vêm em inglês (origem da API). Você pode editá-los manualmente após a importação.
+    </MudAlert>
+
+    @if (_vm.CompetitionsByArea.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+            Nenhuma competição disponível na API.
+        </MudAlert>
+    }
+    else
+    {
+        @foreach (var group in FilteredGroups())
+        {
+            <MudCard Elevation="2" Class="mb-3">
+                <MudCardHeader Class="py-2">
+                    <CardHeaderContent>
+                        <div class="d-flex align-items-center" style="gap:.5rem;">
+                            @if (!string.IsNullOrWhiteSpace(group.AreaFlagUrl))
+                            {
+                                <img src="@group.AreaFlagUrl" alt="@group.AreaName" style="width:24px;height:auto;" />
+                            }
+                            <MudText Typo="Typo.subtitle1"><b>@group.AreaName</b></MudText>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Filled">@group.Competitions.Count(c => Matches(c))</MudChip>
+                        </div>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudList T="string" Dense="true">
+                    @foreach (var c in group.Competitions.Where(Matches))
+                    {
+                        <MudListItem T="string" Href="@($"/pools/{Id}/setup-tournament-wizard/preview?competitionId={c.Id}")">
+                            <div class="d-flex align-items-center" style="gap:.5rem;">
+                                @if (!string.IsNullOrWhiteSpace(c.EmblemUrl))
+                                {
+                                    <img src="@c.EmblemUrl" alt="@c.Name" style="width:24px;height:24px;object-fit:contain;" />
+                                }
+                                <span>@c.Name</span>
+                                @if (!string.IsNullOrWhiteSpace(c.Code))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="ms-auto">@c.Code</MudChip>
+                                }
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudCard>
+        }
+    }
+
+    <div class="mt-3">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" Href="@($"/pools/{Id}")">
+            Cancelar
+        </MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private SetupWizardCompetitionListViewModel? _vm;
+    private string _search = string.Empty;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _vm = await Bus.SendAsync(new GetSetupWizardCompetitionsQuery(Id));
+        if (_vm is null)
+        {
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_vm.PoolName, $"/pools/{Id}"),
+            new("Configurar (Wizard)", null, disabled: true),
+        ];
+    }
+
+    private IEnumerable<CompetitionGroupViewModel> FilteredGroups()
+    {
+        if (_vm is null) yield break;
+        foreach (var g in _vm.CompetitionsByArea)
+        {
+            if (g.Competitions.Any(Matches))
+                yield return g;
+        }
+    }
+
+    private bool Matches(CompetitionItemViewModel c)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        var q = _search.Trim();
+        return (c.Name?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (c.Code?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+}

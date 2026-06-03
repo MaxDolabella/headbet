@@ -1,0 +1,58 @@
+@page "/users/{Id:guid}/delete"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Apagar usuário — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Apagar usuário" Icon="@Icons.Material.Filled.Delete" Breadcrumbs="@_crumbs" HelpAnchor="usuarios" />
+
+    <MudPaper Elevation="3" Class="pa-4 mb-4" Style="border-left:4px solid var(--mud-palette-error);">
+        <MudText Typo="Typo.h6">@_model.Name</MudText>
+        <MudText Class="mud-text-secondary">@_model.Email</MudText>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">Esta ação não pode ser desfeita.</MudAlert>
+    </MudPaper>
+
+    <div class="d-flex" style="gap:.5rem;">
+        <MudButton Variant="Variant.Text" Href="/users">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="Confirm" Disabled="_busy">Apagar</MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private UserFormViewModel? _model;
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Usuários", "/users"),
+        new("Apagar", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetUserQuery(Id));
+        if (_model is null) Nav.NavigateTo("/users");
+    }
+
+    private async Task Confirm()
+    {
+        _busy = true;
+        try
+        {
+            await Bus.SendAsync(new DeleteUserCommand { Id = Id });
+            Snackbar.Add("Usuário apagado.", Severity.Success);
+            Nav.NavigateTo("/users");
+        }
+        finally { _busy = false; }
+    }
+}

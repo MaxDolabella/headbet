@@ -1,0 +1,43 @@
+@using HeadBet.Core.Domain.Enums
+
+<MudCard Elevation="2">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Small" /> Regras de pontuação</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+            <thead>
+                <tr>
+                    <th>Regra</th>
+                    <th class="text-end">Pontos</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rule in Rules.OrderByDescending(r => r.Points))
+                {
+                    <tr>
+                        <td>@LabelFor(rule.Type)</td>
+                        <td class="text-end"><b>@rule.Points</b></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public List<ScoringRuleItemViewModel> Rules { get; set; } = [];
+
+    private static string LabelFor(ScoreType t) => t switch
+    {
+        ScoreType.ExactScore => "Placar exato",
+        ScoreType.WinnerAndDifference => "Vencedor + diferença de gols",
+        ScoreType.WinnerAndLoserGoals => "Vencedor + gols do perdedor",
+        ScoreType.WinnerOnly => "Apenas vencedor",
+        ScoreType.Consolation => "Consolação (empate errado)",
+        ScoreType.NoBet => "Sem palpite",
+        _ => t.ToString(),
+    };
+}

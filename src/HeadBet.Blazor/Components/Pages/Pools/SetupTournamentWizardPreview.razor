@@ -1,0 +1,230 @@
+@page "/pools/{Id:guid}/setup-tournament-wizard/preview"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Confirmar Importação — Wizard</PageTitle>
+
+@if (_vm is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    var nothingToImport = _vm.TeamCount == 0 && _vm.MatchCount == 0;
+
+    <PageHeader Title="Configurar Torneio — Passo 2 de 2"
+                Icon="@Icons.Material.Filled.Visibility"
+                Subtitle="@SubtitleText()"
+                Breadcrumbs="@_crumbs" HelpAnchor="wizard" />
+
+    <MudCard Elevation="2" Class="mb-4">
+        <MudCardContent>
+            <div class="d-flex align-items-center" style="gap:1rem;">
+                @if (!string.IsNullOrWhiteSpace(_vm.CompetitionEmblemUrl))
+                {
+                    <img src="@_vm.CompetitionEmblemUrl" alt="@_vm.CompetitionName" style="width:48px;height:48px;object-fit:contain;" />
+                }
+                <div>
+                    <MudText Typo="Typo.h5">@_vm.CompetitionName</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @_vm.TeamCount times · @_vm.MatchCount jogos
+                        @if (_vm.FirstMatchDateBrt.HasValue && _vm.LastMatchDateBrt.HasValue)
+                        {
+                            <span> · @_vm.FirstMatchDateBrt.Value.ToString("dd/MM/yyyy") → @_vm.LastMatchDateBrt.Value.ToString("dd/MM/yyyy")</span>
+                        }
+                    </MudText>
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+    @if (nothingToImport)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            Não há nada novo para importar. Todos os jogos desta competição já estão cadastrados — ou a competição não retornou dados válidos da API.
+        </MudAlert>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Class="h-100">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" /> Times (@_vm.TeamCount)</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Style="max-height:400px; overflow-y:auto;">
+                    @if (_vm.Teams.Count == 0)
+                    {
+                        <MudText Class="mud-text-secondary">Nenhum time novo.</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Style="background:transparent;">
+                            <tbody>
+                                @foreach (var t in _vm.Teams)
+                                {
+                                    <tr>
+                                        <td style="width:32px;">
+                                            @if (!string.IsNullOrWhiteSpace(t.FlagUrl))
+                                            {
+                                                <img src="@t.FlagUrl" alt="@t.Name" style="width:24px;height:24px;object-fit:contain;" />
+                                            }
+                                        </td>
+                                        <td>@t.Name</td>
+                                        <td class="text-end"><MudChip T="string" Size="Size.Small" Color="Color.Default">@t.Abbreviation</MudChip></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Class="h-100">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" /> Jogos (@_vm.MatchCount)</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Style="max-height:400px; overflow-y:auto;">
+                    @if (_vm.Matches.Count == 0)
+                    {
+                        <MudText Class="mud-text-secondary">Nenhum jogo novo.</MudText>
+                    }
+                    else
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Style="background:transparent;">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th class="text-end">Casa</th>
+                                    <th class="text-center">Placar</th>
+                                    <th>Fora</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in _vm.Matches)
+                                {
+                                    <tr>
+                                        <td><small>@m.MatchDateBrt.ToString("dd/MM HH:mm")</small></td>
+                                        <td class="text-end">@m.HomeTeamAbbreviation</td>
+                                        <td class="text-center">
+                                            @if (m.HomeScore.HasValue && m.AwayScore.HasValue)
+                                            {
+                                                <b>@m.HomeScore x @m.AwayScore</b>
+                                            }
+                                            else
+                                            {
+                                                <span class="mud-text-secondary">— x —</span>
+                                            }
+                                        </td>
+                                        <td>@m.AwayTeamAbbreviation</td>
+                                        <td>
+                                            @if (m.Status == "Finished")
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Success">Finalizado</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Default">Agendado</MudChip>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <div class="mt-4 d-flex" style="gap:.5rem;">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Href="@($"/pools/{Id}/setup-tournament-wizard")" Disabled="_busy">
+            Voltar
+        </MudButton>
+
+        @if (!nothingToImport)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                       OnClick="Confirm" Disabled="_busy">
+                @(_busy ? "Importando..." : $"Importar {_vm.TeamCount} times e {_vm.MatchCount} jogos")
+            </MudButton>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    [SupplyParameterFromQuery] public int CompetitionId { get; set; }
+
+    private SetupWizardPreviewViewModel? _vm;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CompetitionId <= 0)
+        {
+            Nav.NavigateTo($"/pools/{Id}/setup-tournament-wizard");
+            return;
+        }
+
+        _vm = await Bus.SendAsync(new GetSetupWizardPreviewQuery(Id, CompetitionId));
+        if (_vm is null)
+        {
+            Nav.NavigateTo($"/pools/{Id}/setup-tournament-wizard");
+            return;
+        }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_vm.PoolName, $"/pools/{Id}"),
+            new("Wizard", $"/pools/{Id}/setup-tournament-wizard"),
+            new("Preview", null, disabled: true),
+        ];
+    }
+
+    private string SubtitleText()
+    {
+        if (_vm is null) return string.Empty;
+        var subtitle = $"Bolão: {_vm.PoolName}";
+        if (!string.IsNullOrWhiteSpace(_vm.AreaName))
+            subtitle += $" · {_vm.AreaName}";
+        return subtitle;
+    }
+
+    private async Task Confirm()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new ImportTournamentCommand
+            {
+                PoolId = Id,
+                CompetitionId = CompetitionId,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            var data = result.Data!;
+            Snackbar.Add($"Torneio configurado: {data.Teams.Count} times e {data.Matches.Count} jogos cadastrados.", Severity.Success);
+            Nav.NavigateTo($"/pools/{Id}");
+        }
+        finally { _busy = false; }
+    }
+}

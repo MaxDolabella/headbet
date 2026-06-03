@@ -1,0 +1,46 @@
+@* Exibe um time de forma padronizada.
+   Mandante (Home): "Nome (sigla) {bandeira}" alinhado à direita.
+   Visitante (Away): "{bandeira} (sigla) Nome" alinhado à esquerda.
+   Responsivo: em telas estreitas o nome (e o "(sigla)") somem e fica só a SIGLA, mantendo a bandeira. *@
+
+<span class="hb-team @(Home ? "home" : "away")" title="@Name">
+    @if (Home)
+    {
+        <span class="hb-team-label">
+            <b class="hb-team-name">@Name</b>
+            @if (!string.IsNullOrWhiteSpace(Abbreviation))
+            {
+                <span class="mud-text-secondary hb-team-sigla">&nbsp;(@Abbreviation)</span>
+                <b class="hb-team-abbr">@Abbreviation</b>
+            }
+        </span>
+        @if (!string.IsNullOrWhiteSpace(FlagUrl))
+        {
+            <img class="hb-team-flag" src="@FlagUrl" alt="@Abbreviation" />
+        }
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(FlagUrl))
+        {
+            <img class="hb-team-flag" src="@FlagUrl" alt="@Abbreviation" />
+        }
+        <span class="hb-team-label">
+            @if (!string.IsNullOrWhiteSpace(Abbreviation))
+            {
+                <b class="hb-team-abbr">@Abbreviation</b>
+                <span class="mud-text-secondary hb-team-sigla">(@Abbreviation)&nbsp;</span>
+            }
+            <b class="hb-team-name">@Name</b>
+        </span>
+    }
+</span>
+
+@code {
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public string Abbreviation { get; set; } = string.Empty;
+    [Parameter] public string FlagUrl { get; set; } = string.Empty;
+
+    /// <summary>true = mandante (alinhado à direita); false = visitante (alinhado à esquerda).</summary>
+    [Parameter] public bool Home { get; set; }
+}

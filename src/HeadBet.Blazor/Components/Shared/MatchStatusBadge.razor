@@ -1,0 +1,19 @@
+@switch (Status)
+{
+    case MatchStatus.Scheduled:
+        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">Agendado</MudChip>
+        break;
+    case MatchStatus.InProgress:
+        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">Em andamento</MudChip>
+        break;
+    case MatchStatus.Finished:
+        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">Finalizado</MudChip>
+        break;
+    case MatchStatus.Cancelled:
+        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">Cancelado</MudChip>
+        break;
+}
+
+@code {
+    [Parameter] public MatchStatus Status { get; set; }
+}

@@ -1,0 +1,54 @@
+@page "/account/login"
+@layout HeadBet.Blazor.Components.Layout.MainLayout
+@attribute [AllowAnonymous]
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Entrar — HeadBet</PageTitle>
+
+<MudPaper Elevation="4" Class="hb-auth-card pa-6">
+    <MudText Typo="Typo.h5" Class="mb-1"><MudIcon Icon="@Icons.Material.Filled.Login" /> Entrar</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Acesse sua conta no HeadBet.</MudText>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-3" Dense="true">@Error</MudAlert>
+    }
+    @if (!string.IsNullOrEmpty(Success))
+    {
+        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mb-3" Dense="true">@Success</MudAlert>
+    }
+
+    <form method="post" action="/account/sign-in">
+        <AntiforgeryToken />
+        <input type="hidden" name="action" value="login" />
+        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+
+        <MudStack Spacing="3">
+            <MudTextField T="string" Label="E-mail" Variant="Variant.Outlined" InputType="InputType.Email"
+                          name="email" Value="@Email" Required="true" />
+            <PasswordField Name="password" Label="Senha" />
+            <div class="d-flex align-center justify-space-between">
+                <label class="hb-checkbox">
+                    <input type="checkbox" name="rememberMe" value="true" />
+                    <span>Lembrar de mim</span>
+                </label>
+                <MudLink Href="@($"/account/register{BuildReturnUrlQuery()}")">Criar conta</MudLink>
+            </div>
+            <div class="d-flex justify-end">
+                <MudLink Href="/account/forgot-password" Typo="Typo.body2">Esqueci minha senha</MudLink>
+            </div>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       FullWidth="true" StartIcon="@Icons.Material.Filled.Login">Entrar</MudButton>
+        </MudStack>
+    </form>
+</MudPaper>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    [SupplyParameterFromQuery] public string? Success { get; set; }
+    [SupplyParameterFromQuery] public string? Email { get; set; }
+
+    private string BuildReturnUrlQuery()
+        => string.IsNullOrWhiteSpace(ReturnUrl) ? string.Empty : $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+}

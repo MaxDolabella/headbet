@@ -1,0 +1,65 @@
+@page "/pools/{PoolId:guid}/teams/{Id:guid}/delete"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Apagar time — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Apagar time" Icon="@Icons.Material.Filled.Delete" Breadcrumbs="@_crumbs" HelpAnchor="times" />
+
+    <MudPaper Elevation="3" Class="pa-4 mb-4" Style="border-left:4px solid var(--mud-palette-error);">
+        <MudText Typo="Typo.h6">@_model.Name (@_model.Abbreviation)</MudText>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">Tem certeza?</MudAlert>
+    </MudPaper>
+
+    <div class="d-flex" style="gap:.5rem;">
+        <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/teams")">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="Confirm" Disabled="_busy">Apagar</MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid Id { get; set; }
+    private TeamFormViewModel? _model;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetTeamQuery(Id, PoolId));
+        if (_model is null) { Nav.NavigateTo($"/pools/{PoolId}/teams"); return; }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new("Times", $"/pools/{PoolId}/teams"),
+            new("Apagar", null, disabled: true),
+        ];
+    }
+
+    private async Task Confirm()
+    {
+        _busy = true;
+        try
+        {
+            var result = await Bus.SendAsync(new DeleteTeamCommand { Id = Id, PoolId = PoolId });
+            if (!result.IsValid)
+            {
+                Snackbar.Add(result.Notifications?.FirstOrDefault()?.Details ?? "Erro ao apagar time.", Severity.Error);
+                return;
+            }
+            Snackbar.Add("Time apagado.", Severity.Success);
+            Nav.NavigateTo($"/pools/{PoolId}/teams");
+        }
+        finally { _busy = false; }
+    }
+}

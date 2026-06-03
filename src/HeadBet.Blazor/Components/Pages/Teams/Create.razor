@@ -1,0 +1,67 @@
+@page "/pools/{PoolId:guid}/teams/create"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Novo time — HeadBet</PageTitle>
+
+<PageHeader Title="Novo time" Icon="@Icons.Material.Filled.Add" Breadcrumbs="@_crumbs" HelpAnchor="times" />
+
+<MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+    <MudStack Spacing="3">
+        <MudTextField @bind-Value="_model.Name" Label="Nome" Variant="Variant.Outlined" Required="true" />
+        <MudTextField @bind-Value="_model.Abbreviation" Label="Abreviação" Variant="Variant.Outlined" Required="true" />
+        <MudTextField @bind-Value="_model.FlagUrl" Label="URL da bandeira" Variant="Variant.Outlined" />
+        <div class="d-flex" style="gap:.5rem;">
+            <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/teams")">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check"
+                       OnClick="Submit" Disabled="_busy">@(_busy ? "Salvando..." : "Salvar")</MudButton>
+        </div>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    private TeamFormViewModel _model = new();
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override void OnInitialized()
+    {
+        _model.PoolId = PoolId;
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new("Times", $"/pools/{PoolId}/teams"),
+            new("Novo", null, disabled: true),
+        ];
+    }
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new CreateTeamCommand
+            {
+                PoolId = PoolId,
+                Name = _model.Name,
+                Abbreviation = _model.Abbreviation,
+                FlagUrl = _model.FlagUrl,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Time cadastrado.", Severity.Success);
+            Nav.NavigateTo($"/pools/{PoolId}/teams");
+        }
+        finally { _busy = false; }
+    }
+}

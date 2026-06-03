@@ -1,0 +1,64 @@
+@page "/ai-models"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+
+<PageTitle>Modelos de IA — HeadBet</PageTitle>
+
+<PageHeader Title="Modelos de IA" Icon="@Icons.Material.Filled.SmartToy" Breadcrumbs="@_crumbs">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Href="/ai-models/create">
+            Novo modelo
+        </MudButton>
+    </Actions>
+</PageHeader>
+
+@if (_models is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_models.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Nenhum modelo cadastrado.</MudAlert>
+}
+else
+{
+    <MudPaper Elevation="2">
+        <MudDataGrid Items="_models" Hover="true" Dense="true">
+            <Columns>
+                <TemplateColumn Title="Provider">
+                    <CellTemplate Context="ctx">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                 Color="@(ctx.Item.Provider == AiProvider.Claude ? Color.Primary : Color.Info)">
+                            @ctx.Item.Provider
+                        </MudChip>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.Name" Title="Nome" />
+                <PropertyColumn Property="x => x.DisplayName" Title="Nome de exibição" />
+                <TemplateColumn Title="Status">
+                    <CellTemplate Context="ctx"><PoolStatusBadge IsActive="@ctx.Item.IsActive" /></CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Ações" CellClass="text-end">
+                    <CellTemplate Context="ctx">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
+                                       Href="@($"/ai-models/{ctx.Item.Id}/edit")" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Href="@($"/ai-models/{ctx.Item.Id}/delete")" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+@code {
+    private List<AiModelListViewModel>? _models;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Modelos de IA", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+        => _models = await Bus.SendAsync(new ListAiModelsQuery());
+}

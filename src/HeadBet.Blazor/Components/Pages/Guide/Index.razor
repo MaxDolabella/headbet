@@ -1,0 +1,214 @@
+@page "/guide"
+@attribute [Authorize]
+@inject IJSRuntime Js
+
+<PageTitle>Guia — HeadBet</PageTitle>
+
+<PageHeader Title="Guia de uso" Icon="@Icons.Material.Filled.MenuBook" Breadcrumbs="@_crumbs" />
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-6">
+    Este guia explica, tela a tela, o que cada parte do HeadBet faz e como usá-la.
+    Em quase toda tela há um botão de ajuda <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" />
+    no canto superior — ele traz você direto para a seção correspondente aqui.
+</MudAlert>
+
+<MudCard Elevation="2" Class="mb-6">
+    <MudCardHeader><CardHeaderContent>
+        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Small" /> Índice</MudText>
+    </CardHeaderContent></MudCardHeader>
+    <MudCardContent>
+        <ol style="margin:0; padding-left:1.25rem;">
+            <li><MudLink Href="#cadastro">Criar conta e entrar</MudLink></li>
+            <li><MudLink Href="#boloes">A tela de Bolões (página inicial)</MudLink></li>
+            <li><MudLink Href="#criar-bolao">Criar e editar um bolão</MudLink></li>
+            <li><MudLink Href="#regras-pontuacao">Regras de pontuação</MudLink></li>
+            <li><MudLink Href="#premios">Premiação (percentual ou valor fixo)</MudLink></li>
+            <li><MudLink Href="#times">Cadastrar times</MudLink></li>
+            <li><MudLink Href="#wizard">Configurar o torneio pelo wizard</MudLink></li>
+            <li><MudLink Href="#jogos">Cadastrar e gerenciar jogos</MudLink></li>
+            <li><MudLink Href="#placar">Lançar o placar (admin)</MudLink></li>
+            <li><MudLink Href="#entrar-bolao">Entrar em um bolão (público ou por convite)</MudLink></li>
+            <li><MudLink Href="#palpitar">Dar palpites nos jogos</MudLink></li>
+            <li><MudLink Href="#ranking">Acompanhar o ranking</MudLink></li>
+            <li><MudLink Href="#participantes">Gerenciar participantes (admin)</MudLink></li>
+            <li><MudLink Href="#usuarios">Gerenciar usuários (admin do sistema)</MudLink></li>
+        </ol>
+    </MudCardContent>
+</MudCard>
+
+<section id="cadastro" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.PersonAdd" /> 1. Criar conta e entrar</MudText>
+    <ol>
+        <li>Na página inicial, como visitante você vê apenas os bolões públicos e seus rankings.</li>
+        <li>Clique em <b>Criar conta</b> no canto superior direito, preencha os dados e confirme.</li>
+        <li>Após o cadastro você é logado automaticamente.</li>
+        <li>Logado, o menu lateral mostra <b>Bolões</b>, este <b>Guia</b> e, quando você está dentro de um bolão, atalhos para <b>Jogos</b>, <b>Ranking</b> e (se for admin) <b>Participantes</b>.</li>
+    </ol>
+</section>
+
+<section id="boloes" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.EmojiEvents" /> 2. A tela de Bolões (página inicial)</MudText>
+    <p>É a porta de entrada do sistema. Ela tem duas listas:</p>
+    <ul>
+        <li><b>Meus bolões</b> — os que você criou ou em que participa, com seu vínculo (admin/participante, ativo/pendente).</li>
+        <li><b>Bolões públicos disponíveis</b> — qualquer um pode ver os detalhes e o ranking; logado, você pode clicar em <b>Entrar</b>.</li>
+    </ul>
+    <p>
+        Clicar no nome de um bolão abre a tela de <b>detalhes</b>: ali ficam a classificação em destaque, os botões
+        <b>Ranking</b> e <b>Palpitar</b> e, para o admin, o menu <b>Admin</b> (editar, participantes, times, jogos,
+        configurar torneio e apagar).
+    </p>
+</section>
+
+<section id="criar-bolao" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.AddCircle" /> 3. Criar e editar um bolão</MudText>
+    <ol>
+        <li>Na tela <b>Bolões</b>, clique em <b>Novo bolão</b>.</li>
+        <li>Preencha nome, descrição e <b>visibilidade</b> (público ou privado).</li>
+        <li>Defina se o bolão é <b>pago</b>; se for, informe a taxa de inscrição e a premiação.</li>
+        <li>Configure as <b>regras de pontuação</b> (ver seção 4).</li>
+        <li>Marque <b>aprovação automática</b> se quiser que novos membros entrem direto, sem aprovação manual.</li>
+        <li>Salve — você passa a ser o <b>admin</b> do bolão. Para mudar qualquer dado depois, use <b>Admin → Editar dados</b>.</li>
+    </ol>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Bolão <b>privado</b> não aparece na lista pública: o acesso é só por link de convite (ver seção 10).
+    </MudAlert>
+</section>
+
+<section id="regras-pontuacao" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Calculate" /> 4. Regras de pontuação</MudText>
+    <p>Cada acerto vale uma pontuação configurável, em ordem do mais difícil ao mais fácil:</p>
+    <ul>
+        <li><b>Placar exato</b> — o palpite bate exatamente com o resultado.</li>
+        <li><b>Vencedor + diferença</b> — acertou quem ganhou e a diferença de gols.</li>
+        <li><b>Vencedor + gols do perdedor</b>.</li>
+        <li><b>Apenas vencedor</b> (ou empate).</li>
+        <li><b>Consolação</b> — acerto parcial menor.</li>
+        <li><b>Sem palpite</b> — não palpitou.</li>
+    </ul>
+    <p>Essa mesma ordem é usada como critério de <b>desempate</b> no ranking.</p>
+</section>
+
+<section id="premios" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.AttachMoney" /> 5. Premiação</MudText>
+    <p>Disponível apenas em bolões <b>pagos</b>. Dois modos:</p>
+    <ul>
+        <li><b>Percentual</b> — cada posição premiada leva uma fatia do bolo arrecadado (taxa × participantes). A soma dos percentuais deve fechar 100%.</li>
+        <li><b>Valor fixo</b> — cada posição premiada tem um valor em reais definido manualmente.</li>
+    </ul>
+    <p>O <b>valor arrecadado</b> e os prêmios calculados por posição aparecem nos detalhes do bolão e no ranking. Em caso de empate técnico, o prêmio das posições envolvidas é dividido.</p>
+</section>
+
+<section id="times" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Flag" /> 6. Cadastrar times</MudText>
+    <p>Os jogos são montados entre times do bolão. Há dois caminhos para tê-los:</p>
+    <ul>
+        <li><b>Wizard</b> (recomendado) — importa competição, times e jogos de uma vez (ver seção 7).</li>
+        <li><b>Manual</b> — em <b>Admin → Times</b>, clique em <b>Novo time</b>, informe nome, sigla e (opcional) a bandeira/escudo. Use <b>editar</b> ou <b>apagar</b> para ajustar a lista.</li>
+    </ul>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Sem nenhum time cadastrado, a tela de <b>novo jogo</b> fica bloqueada e sugere o wizard ou o cadastro manual.
+    </MudAlert>
+</section>
+
+<section id="wizard" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Checklist" /> 7. Configurar o torneio pelo wizard</MudText>
+    <p>O wizard importa uma competição inteira da base football-data, com times e jogos já com data e horário. É a forma mais rápida de montar o bolão.</p>
+    <ol>
+        <li>Nos detalhes do bolão, abra <b>Admin → Configurar torneio</b>.</li>
+        <li><b>Passo 1</b> — filtre e escolha a competição (por nome, código ou país).</li>
+        <li><b>Passo 2</b> — confira a prévia de times e jogos e confirme a importação.</li>
+        <li>Pronto: times e jogos são criados no bolão. Você ainda pode editar nomes, datas e placares manualmente depois.</li>
+    </ol>
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Os nomes vêm em inglês (origem da API). Ajuste-os manualmente nas telas de Times/Jogos se quiser.
+    </MudAlert>
+</section>
+
+<section id="jogos" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.SportsSoccer" /> 8. Cadastrar e gerenciar jogos</MudText>
+    <p>Em <b>Admin → Jogos</b> você vê a lista de jogos do bolão. Como admin pode:</p>
+    <ol>
+        <li><b>Novo jogo</b> — escolha mandante e visitante, data, hora, grupo, rodada e status. (Exige ter times cadastrados — ver seção 6.)</li>
+        <li><b>Editar</b> — corrigir dados de um jogo.</li>
+        <li><b>Editar placar</b> — lançar o resultado final (ver seção 9).</li>
+        <li><b>Apagar</b> — remover um jogo.</li>
+    </ol>
+    <p>Participantes também acessam a lista de jogos (somente leitura) e os detalhes de cada jogo com os palpites.</p>
+</section>
+
+<section id="placar" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Flag" /> 9. Lançar o placar (admin)</MudText>
+    <ol>
+        <li>Na lista de <b>Jogos</b>, abra o jogo e clique em <b>Editar placar</b>.</li>
+        <li>Informe os gols finais do mandante e do visitante e o status do jogo.</li>
+        <li>Ao salvar, o HeadBet calcula os pontos de todos os palpites automaticamente e atualiza o ranking.</li>
+    </ol>
+</section>
+
+<section id="entrar-bolao" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Login" /> 10. Entrar em um bolão</MudText>
+    <p><b>Bolão público:</b></p>
+    <ol>
+        <li>Na tela <b>Bolões</b>, role até "Bolões públicos disponíveis".</li>
+        <li>Use <b>Ver detalhes</b> para conhecer regras e participantes.</li>
+        <li>Clique em <b>Entrar</b>. Com aprovação automática você já vira participante; senão, fica <b>pendente</b> até o admin aprovar.</li>
+    </ol>
+    <p><b>Bolão privado:</b> só dá para entrar pelo <b>link de convite</b> que o admin compartilha. Ao abrir o link, você vê o convite e confirma a entrada.</p>
+</section>
+
+<section id="palpitar" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Casino" /> 11. Dar palpites nos jogos</MudText>
+    <ol>
+        <li>Nos detalhes do bolão, clique em <b>Palpitar</b>.</li>
+        <li>Informe os gols do mandante e do visitante de cada jogo. Deixe em branco para não palpitar.</li>
+        <li>Clique em <b>Salvar palpites</b> — um único botão salva todos os jogos, inclusive os de outras páginas (a lista é paginada de 10 em 10, do próximo jogo ao último).</li>
+    </ol>
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Cada jogo pode ser palpitado/editado até <b>2 minutos antes</b> do seu início. Depois disso ele some da lista de palpites.
+    </MudAlert>
+</section>
+
+<section id="ranking" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.BarChart" /> 12. Acompanhar o ranking</MudText>
+    <ul>
+        <li>Nos detalhes do bolão, a classificação aparece em destaque no topo.</li>
+        <li>O botão <b>Ranking</b> abre a tela dedicada, com detalhamento de acertos por tipo (exato, vencedor+dif, etc.) e, em bolões pagos, o prêmio por posição.</li>
+        <li>O ranking de bolão público é visível por qualquer pessoa, mesmo sem login.</li>
+    </ul>
+</section>
+
+<section id="participantes" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.People" /> 13. Gerenciar participantes (admin)</MudText>
+    <p>Em <b>Admin → Participantes</b> o administrador do bolão controla quem está dentro. Quando há aprovação manual, o menu lateral mostra um aviso com a quantidade de solicitações pendentes.</p>
+    <ul>
+        <li><b>Aprovar / Recusar</b> solicitações pendentes.</li>
+        <li><b>Desativar</b> um participante ativo (sai do ranking e das contagens).</li>
+        <li><b>Reativar</b> um participante inativo.</li>
+    </ul>
+    <p>Você não pode desativar a si mesmo nem outro administrador.</p>
+</section>
+
+<section id="usuarios" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.ManageAccounts" /> 14. Gerenciar usuários (admin do sistema)</MudText>
+    <p>Disponível apenas para o <b>administrador do sistema</b> (não confundir com o admin de um bolão). Acessível pelo menu <b>Usuários</b>.</p>
+    <ul>
+        <li><b>Novo usuário</b> — criar uma conta manualmente.</li>
+        <li><b>Editar</b> — alterar dados e papel (perfil) de um usuário.</li>
+        <li><b>Apagar</b> — remover uma conta do sistema.</li>
+    </ul>
+</section>
+
+@code {
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Bolões", "/pools"),
+        new("Guia de uso", null, disabled: true),
+    ];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await Js.InvokeVoidAsync("hbScrollToHash");
+    }
+}

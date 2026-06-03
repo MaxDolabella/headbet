@@ -1,0 +1,12 @@
+@if (IsPublic)
+{
+    <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Public">Público</MudChip>
+}
+else
+{
+    <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Lock">Privado</MudChip>
+}
+
+@code {
+    [Parameter] public bool IsPublic { get; set; }
+}

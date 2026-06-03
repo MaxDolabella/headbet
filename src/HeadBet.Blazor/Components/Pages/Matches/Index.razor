@@ -1,0 +1,185 @@
+@page "/pools/{PoolId:guid}/matches"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Jogos — HeadBet</PageTitle>
+
+@if (_loaded is false)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Jogos" Icon="@Icons.Material.Filled.SportsSoccer" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
+        <Actions>
+            @if (_isAdmin)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add"
+                           Href="@($"/pools/{PoolId}/matches/create")">Novo jogo</MudButton>
+            }
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="@($"/pools/{PoolId}")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_matches.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Nenhum jogo cadastrado neste bolão.</MudAlert>
+    }
+    else
+    {
+        @* Desktop: DataGrid *@
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+        <MudPaper Elevation="2">
+            <MudDataGrid Items="_matches" Hover="true" Dense="true" Class="hb-matches-grid">
+                <Columns>
+                    <PropertyColumn Property="x => x.Group" Title="Grupo" HeaderStyle="width:90px" HeaderClass="text-center" CellClass="text-center" />
+                    <PropertyColumn Property="x => x.Round" Title="Rod." HeaderStyle="width:50px" HeaderClass="text-center" CellClass="text-center" />
+                    <TemplateColumn Title="Mandante" HeaderClass="text-end">
+                        <CellTemplate Context="ctx">
+                            <TeamDisplay Home="true" Name="@ctx.Item.HomeTeamName"
+                                         Abbreviation="@ctx.Item.HomeTeamAbbreviation" FlagUrl="@ctx.Item.HomeTeamFlagUrl" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Placar" HeaderClass="text-center" CellClass="text-center" HeaderStyle="width:80px">
+                        <CellTemplate Context="ctx">
+                            @if (ctx.Item.HomeScore.HasValue && ctx.Item.AwayScore.HasValue)
+                            {
+                                <b>@ctx.Item.HomeScore <span class="mud-text-secondary">x</span> @ctx.Item.AwayScore</b>
+                            }
+                            else
+                            {
+                                <span class="mud-text-secondary">— x —</span>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Visitante" HeaderClass="text-start">
+                        <CellTemplate Context="ctx">
+                            <TeamDisplay Home="false" Name="@ctx.Item.AwayTeamName"
+                                         Abbreviation="@ctx.Item.AwayTeamAbbreviation" FlagUrl="@ctx.Item.AwayTeamFlagUrl" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.MatchDate" Title="Data/Hora" Format="dd/MM/yyyy HH:mm" HeaderClass="text-center" CellClass="text-center" />
+                    <TemplateColumn Title="Status" HeaderClass="text-center">
+                        <CellTemplate Context="ctx">
+                            <span class="d-inline-flex align-items-center" style="gap:.3rem;">
+                                <MatchStatusBadge Status="@ctx.Item.Status" />
+                                @if (ctx.Item.HasBet)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
+                                             Icon="@Icons.Material.Filled.Check">Palpitado</MudChip>
+                                }
+                            </span>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Ações" HeaderClass="text-center">
+                        <CellTemplate Context="ctx">
+                            <div class="d-flex justify-end flex-wrap">
+                                <MudTooltip Text="Ver palpites">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                                   Href="@($"/pools/{PoolId}/matches/{ctx.Item.Id}")" />
+                                </MudTooltip>
+                                @if (_isAdmin)
+                                {
+                                    <MudTooltip Text="Editar placar">
+                                        <MudIconButton Icon="@Icons.Material.Filled.SportsSoccer" Size="Size.Small" Color="Color.Warning"
+                                                       Href="@($"/pools/{PoolId}/matches/{ctx.Item.Id}/edit-score")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Editar jogo">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                       Href="@($"/pools/{PoolId}/matches/{ctx.Item.Id}/edit")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Excluir jogo">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       Href="@($"/pools/{PoolId}/matches/{ctx.Item.Id}/delete")" />
+                                    </MudTooltip>
+                                }
+                            </div>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+        </MudHidden>
+
+        @* Mobile: cards *@
+        <MudHidden Breakpoint="Breakpoint.MdAndUp">
+            <div class="hb-match-cards">
+                @foreach (var m in _matches)
+                {
+                    <MudPaper Elevation="2" Class="pa-3 mb-2">
+                        <div class="d-flex justify-end align-center mb-1" style="gap:.3rem;">
+                            <MatchStatusBadge Status="@m.Status" />
+                            @if (m.HasBet)
+                            {
+                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
+                                         Icon="@Icons.Material.Filled.Check">Palpitado</MudChip>
+                            }
+                        </div>
+
+                        <MatchLine Dense="true" ShowHeader="true" MatchDate="m.MatchDate" Round="@((int)m.Round)" Group="@m.Group"
+                                   HomeName="@m.HomeTeamName" HomeAbbreviation="@m.HomeTeamAbbreviation" HomeFlagUrl="@m.HomeTeamFlagUrl"
+                                   AwayName="@m.AwayTeamName" AwayAbbreviation="@m.AwayTeamAbbreviation" AwayFlagUrl="@m.AwayTeamFlagUrl"
+                                   HomeScore="@m.HomeScore" AwayScore="@m.AwayScore" />
+
+                        <div class="d-flex justify-end mt-2">
+                            <div class="d-inline-flex flex-wrap justify-end" style="gap:.1rem;">
+                                <MudTooltip Text="Ver palpites">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                                   Href="@($"/pools/{PoolId}/matches/{m.Id}")" />
+                                </MudTooltip>
+                                @if (_isAdmin)
+                                {
+                                    <MudTooltip Text="Editar placar">
+                                        <MudIconButton Icon="@Icons.Material.Filled.SportsSoccer" Size="Size.Small" Color="Color.Warning"
+                                                       Href="@($"/pools/{PoolId}/matches/{m.Id}/edit-score")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Editar jogo">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                       Href="@($"/pools/{PoolId}/matches/{m.Id}/edit")" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Excluir jogo">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       Href="@($"/pools/{PoolId}/matches/{m.Id}/delete")" />
+                                    </MudTooltip>
+                                }
+                            </div>
+                        </div>
+                    </MudPaper>
+                }
+            </div>
+        </MudHidden>
+
+        <MudText Class="mud-text-secondary mt-2">@_matches.Count jogo(s) cadastrado(s).</MudText>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    private bool _loaded;
+    private bool _isAdmin;
+    private List<MatchListViewModel> _matches = new();
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var details = await Bus.SendAsync(new GetPoolDetailsQuery(PoolId));
+        if (details is null)
+        {
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _isAdmin = details.IsAdmin;
+        _matches = await Bus.SendAsync(new ListMatchesQuery(PoolId));
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(details.Name, $"/pools/{PoolId}"),
+            new("Jogos", null, disabled: true),
+        ];
+        _loaded = true;
+    }
+}

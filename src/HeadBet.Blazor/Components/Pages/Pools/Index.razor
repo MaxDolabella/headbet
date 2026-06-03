@@ -1,0 +1,192 @@
+@page "/"
+@page "/pools"
+@attribute [AllowAnonymous]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Bolões — HeadBet</PageTitle>
+
+<PageHeader Title="Bolões" Icon="@Icons.Material.Filled.EmojiEvents"
+            Breadcrumbs="@_crumbs" HelpAnchor="boloes">
+    <Actions>
+        <AuthorizeView>
+            <Authorized>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" Href="/pools/create">
+                    Novo bolão
+                </MudButton>
+            </Authorized>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
+
+@if (_data is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <AuthorizeView>
+        <Authorized>
+            <MudText Typo="Typo.h6" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.PersonPin" Size="Size.Small" /> Meus bolões
+            </MudText>
+            @if (_data.Mine.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-6" Variant="Variant.Outlined">
+                    Você ainda não participa de nenhum bolão. Crie um novo ou entre em um bolão público abaixo.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="2" Class="mb-6">
+                    <MudDataGrid Items="_data.Mine" Hover="true" Dense="true" Bordered="false">
+                        <Columns>
+                            <PropertyColumn Property="x => x.Name" Title="Nome">
+                                <CellTemplate Context="ctx">
+                                    <MudLink Href="@($"/pools/{ctx.Item.Id}")"><b>@ctx.Item.Name</b></MudLink>
+                                </CellTemplate>
+                            </PropertyColumn>
+                            <TemplateColumn Title="Visibilidade">
+                                <CellTemplate Context="ctx">
+                                    <PoolVisibilityBadge IsPublic="@ctx.Item.IsPublic" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Tipo">
+                                <CellTemplate Context="ctx">
+                                    <PoolPaidBadge IsPaid="@ctx.Item.IsPaid" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <PropertyColumn Property="x => x.EntryFee" Title="Taxa" Format="C2" Culture="@_brCulture" />
+                            <TemplateColumn Title="Status">
+                                <CellTemplate Context="ctx">
+                                    <PoolStatusBadge IsActive="@ctx.Item.IsActive" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <PropertyColumn Property="x => x.MemberCount" Title="Membros" />
+                            <TemplateColumn Title="Meu vínculo">
+                                <CellTemplate Context="ctx">
+                                    <PoolMemberRoleBadge Status="@ctx.Item.MyStatus" Role="@ctx.Item.MyRole" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Ações" CellClass="text-end">
+                                <CellTemplate Context="ctx">
+                                    @if (ctx.Item.MyStatus == PoolMemberStatus.Active)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                                       Href="@($"/pools/{ctx.Item.Id}")" title="Detalhes"/>
+                                        @if (ctx.Item.MyRole == PoolMemberRole.Admin)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
+                                                           Href="@($"/pools/{ctx.Item.Id}/edit")" title="Editar"/>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                           Href="@($"/pools/{ctx.Item.Id}/delete")" title="Apagar"/>
+                                        }
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </MudPaper>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-6">
+                Você está navegando como visitante.
+                <MudLink Href="/account/login">Entre</MudLink>
+                ou
+                <MudLink Href="/account/register">crie uma conta</MudLink>
+                para criar bolões e palpitar.
+            </MudAlert>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <MudText Typo="Typo.h6" Class="mb-3">
+        <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" /> Bolões públicos disponíveis
+    </MudText>
+    @if (_data.Public.Count == 0)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Nenhum bolão público disponível no momento.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudDataGrid Items="_data.Public" Hover="true" Dense="true" Bordered="false">
+                <Columns>
+                    <PropertyColumn Property="x => x.Name" Title="Nome">
+                        <CellTemplate Context="ctx">
+                            <MudLink Href="@($"/pools/{ctx.Item.Id}")"><b>@ctx.Item.Name</b></MudLink>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <TemplateColumn Title="Tipo">
+                        <CellTemplate Context="ctx">
+                            <PoolPaidBadge IsPaid="@ctx.Item.IsPaid" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.EntryFee" Title="Taxa" Format="C2" Culture="@_brCulture" />
+                    <PropertyColumn Property="x => x.MemberCount" Title="Membros" />
+                    <TemplateColumn Title="Ações" CellClass="text-end">
+                        <CellTemplate Context="ctx">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                           Href="@($"/pools/{ctx.Item.Id}")" title="Ver detalhes"/>
+                            <AuthorizeView>
+                                <Authorized>
+                                    <MudButton Variant="Variant.Filled" Size="Size.Small" Color="Color.Success"
+                                               StartIcon="@Icons.Material.Filled.Login"
+                                               OnClick="@(() => Enter(ctx.Item.Id))">Entrar</MudButton>
+                                </Authorized>
+                            </AuthorizeView>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Success { get; set; }
+
+    private PoolListingViewModel? _data;
+    private readonly System.Globalization.CultureInfo _brCulture = new("pt-BR");
+
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Bolões", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+        => _data = await Bus.SendAsync(new ListPoolsQuery());
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(Success))
+        {
+            Snackbar.Add(Success, Severity.Success);
+            Nav.NavigateTo("/", replace: true);
+        }
+    }
+
+    private async Task Enter(Guid poolId)
+    {
+        var result = await Bus.SendAsync(new JoinPoolCommand { PoolId = poolId, Source = JoinSource.EnterButton });
+        if (!result.IsValid)
+        {
+            Snackbar.Add(result.Notifications?.FirstOrDefault()?.Message ?? "Não foi possível entrar no bolão.", Severity.Error);
+            return;
+        }
+
+        if (result.Data!.Status == PoolMemberStatus.Active)
+        {
+            Snackbar.Add("Você entrou no bolão!", Severity.Success);
+            Nav.NavigateTo($"/pools/{poolId}");
+        }
+        else
+        {
+            Snackbar.Add("Solicitação enviada. Aguarde aprovação do administrador.", Severity.Info);
+            _data = await Bus.SendAsync(new ListPoolsQuery());
+        }
+    }
+}

@@ -1,0 +1,77 @@
+@page "/pools/{PoolId:guid}/teams/{Id:guid}/edit"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Editar time — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Editar time" Icon="@Icons.Material.Filled.Edit" Breadcrumbs="@_crumbs" HelpAnchor="times" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_model.Name" Label="Nome" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_model.Abbreviation" Label="Abreviação" Variant="Variant.Outlined" Required="true" />
+            <MudTextField @bind-Value="_model.FlagUrl" Label="URL da bandeira" Variant="Variant.Outlined" />
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/teams")">Cancelar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="Submit" Disabled="_busy">@(_busy ? "Salvando..." : "Salvar")</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid Id { get; set; }
+    private TeamFormViewModel? _model;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetTeamQuery(Id, PoolId));
+        if (_model is null) { Nav.NavigateTo($"/pools/{PoolId}/teams"); return; }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new("Times", $"/pools/{PoolId}/teams"),
+            new("Editar", null, disabled: true),
+        ];
+    }
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new UpdateTeamCommand
+            {
+                Id = Id,
+                PoolId = PoolId,
+                Name = _model!.Name,
+                Abbreviation = _model.Abbreviation,
+                FlagUrl = _model.FlagUrl,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Time atualizado.", Severity.Success);
+            Nav.NavigateTo($"/pools/{PoolId}/teams");
+        }
+        finally { _busy = false; }
+    }
+}

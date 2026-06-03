@@ -1,0 +1,96 @@
+@* Linha padrão de um jogo: "{mandante}  [placar] x [placar]  {visitante}".
+   - Header opcional: "hora | Grupo | Rodada".
+   - Placar central em 3 modos:
+       * Editable=true  -> dois MudNumericField (bind em HomeScore/AwayScore)
+       * sem placar     -> "—" (quando algum lado é null e não-editável)
+       * com placar      -> número
+   Usado em todo lugar que aparece "Time A x Time B". *@
+
+<div class="hb-match @(Dense ? "hb-match-dense" : null)">
+    @if (ShowHeader && (MatchDate.HasValue || !string.IsNullOrWhiteSpace(Group) || Round.HasValue))
+    {
+        <div class="hb-match-header mud-text-secondary">
+            @if (MatchDate.HasValue)
+            {
+                <span>@MatchDate.Value.ToString("dd/MM/yyyy HH:mm")</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Group))
+            {
+                <span>@(Group!.StartsWith("Grupo", StringComparison.OrdinalIgnoreCase) ? Group : $"Grupo {Group}")</span>
+            }
+            @if (Round.HasValue)
+            {
+                <span>Rodada @Round</span>
+            }
+        </div>
+    }
+
+    <div class="hb-match-line">
+        <TeamDisplay Home="true" Name="@HomeName" Abbreviation="@HomeAbbreviation" FlagUrl="@HomeFlagUrl" />
+
+        <div class="hb-match-score">
+            @if (Editable)
+            {
+                <MudNumericField T="int?" Value="HomeScore" ValueChanged="OnHomeChanged" Min="Min" Max="Max"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" HideSpinButtons="true" Class="hb-score-input" />
+                <span class="hb-x">x</span>
+                <MudNumericField T="int?" Value="AwayScore" ValueChanged="OnAwayChanged" Min="Min" Max="Max"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" HideSpinButtons="true" Class="hb-score-input" />
+            }
+            else if (HomeScore.HasValue && AwayScore.HasValue)
+            {
+                <span class="hb-score-num">@HomeScore</span>
+                <span class="hb-x">x</span>
+                <span class="hb-score-num">@AwayScore</span>
+            }
+            else
+            {
+                <span class="hb-score-num mud-text-secondary">—</span>
+                <span class="hb-x">x</span>
+                <span class="hb-score-num mud-text-secondary">—</span>
+            }
+        </div>
+
+        <TeamDisplay Home="false" Name="@AwayName" Abbreviation="@AwayAbbreviation" FlagUrl="@AwayFlagUrl" />
+    </div>
+</div>
+
+@code {
+    [Parameter] public string HomeName { get; set; } = string.Empty;
+    [Parameter] public string HomeAbbreviation { get; set; } = string.Empty;
+    [Parameter] public string HomeFlagUrl { get; set; } = string.Empty;
+    [Parameter] public string AwayName { get; set; } = string.Empty;
+    [Parameter] public string AwayAbbreviation { get; set; } = string.Empty;
+    [Parameter] public string AwayFlagUrl { get; set; } = string.Empty;
+
+    [Parameter] public int? HomeScore { get; set; }
+    [Parameter] public EventCallback<int?> HomeScoreChanged { get; set; }
+    [Parameter] public int? AwayScore { get; set; }
+    [Parameter] public EventCallback<int?> AwayScoreChanged { get; set; }
+
+    /// <summary>Renderiza campos numéricos editáveis no lugar do placar.</summary>
+    [Parameter] public bool Editable { get; set; }
+    [Parameter] public int Min { get; set; }
+    [Parameter] public int Max { get; set; } = 20;
+
+    /// <summary>Exibe a linha de cabeçalho (hora | grupo | rodada).</summary>
+    [Parameter] public bool ShowHeader { get; set; }
+    [Parameter] public DateTime? MatchDate { get; set; }
+    [Parameter] public string? Group { get; set; }
+    [Parameter] public int? Round { get; set; }
+
+    /// <summary>Variante compacta (fontes/flags menores) para listas densas.</summary>
+    [Parameter] public bool Dense { get; set; }
+
+    private async Task OnHomeChanged(int? value)
+    {
+        HomeScore = value;
+        await HomeScoreChanged.InvokeAsync(value);
+    }
+
+    private async Task OnAwayChanged(int? value)
+    {
+        AwayScore = value;
+        await AwayScoreChanged.InvokeAsync(value);
+    }
+}

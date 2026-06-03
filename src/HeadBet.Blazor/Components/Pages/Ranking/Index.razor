@@ -1,0 +1,115 @@
+@page "/pools/{PoolId:guid}/ranking"
+@attribute [AllowAnonymous]
+@inject IBus Bus
+@inject NavigationManager Nav
+
+<PageTitle>Ranking — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@($"Ranking — {_model.PoolName}")" Icon="@Icons.Material.Filled.BarChart" Breadcrumbs="@_crumbs" HelpAnchor="ranking">
+        <Actions>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="@($"/pools/{PoolId}")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_model.Items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Nenhum participante ativo neste bolão ainda.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+                <thead>
+                    <tr>
+                        <th style="width:60px" class="text-center">#</th>
+                        <th>Participante</th>
+                        <th class="text-end">Pontos</th>
+                        @foreach (var st in PoolRankingViewModel.BreakdownOrder)
+                        {
+                            <th class="text-center small">@ScoreTypeAbbr(st)</th>
+                        }
+                        @if (_model.IsPaid) { <th class="text-end">Prêmio</th> }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _model.Items)
+                    {
+                        <tr style="@(item.IsCurrentUser ? "background-color: rgba(255,255,255,.05);font-weight:600;" : "")">
+                            <td class="text-center" style="text-align:center;">
+                                <RankingPositionBadge Position="item.Position" IsAwarded="item.IsAwarded" />
+                            </td>
+                            <td>
+                                @item.UserName
+                                @if (item.IsCurrentUser)
+                                {
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">você</MudChip>
+                                }
+                            </td>
+                            <td class="text-end"><b>@item.TotalPoints</b></td>
+                            @foreach (var st in PoolRankingViewModel.BreakdownOrder)
+                            {
+                                <td class="text-center small">@item.CountsByScoreType.GetValueOrDefault(st, 0)</td>
+                            }
+                            @if (_model.IsPaid)
+                            {
+                                <td class="text-end">
+                                    @if (item.PrizeAmount > 0)
+                                    {
+                                        <b>R$ @item.PrizeAmount.ToString("N2")</b>
+                                    }
+                                    else
+                                    {
+                                        <span class="mud-text-secondary">—</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+            <div class="pa-3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                    Desempate: pontos → placar exato → vencedor+dif → vencedor+gols perdedor → apenas vencedor → consolação.
+                    Empate técnico divide o prêmio das posições envolvidas.
+                </MudText>
+            </div>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    private PoolRankingViewModel? _model;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetPoolRankingQuery(PoolId));
+        if (_model is null) { Nav.NavigateTo("/pools"); return; }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_model.PoolName, $"/pools/{PoolId}"),
+            new("Ranking", null, disabled: true),
+        ];
+    }
+
+    private static string ScoreTypeAbbr(ScoreType t) => t switch
+    {
+        ScoreType.ExactScore => "Exato",
+        ScoreType.WinnerAndDifference => "V+Dif",
+        ScoreType.WinnerAndLoserGoals => "V+GP",
+        ScoreType.WinnerOnly => "V",
+        ScoreType.Consolation => "Cons",
+        _ => t.ToString(),
+    };
+}

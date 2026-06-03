@@ -1,0 +1,73 @@
+@page "/account/profile"
+@attribute [Authorize]
+@inject IBus Bus
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Minha conta — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Minha conta" Icon="@Icons.Material.Filled.ManageAccounts" Breadcrumbs="@_crumbs" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_model.Name" Label="Nome" Variant="Variant.Outlined" />
+            <MudTextField Value="_model.Email" Label="E-mail" Variant="Variant.Outlined" ReadOnly="true" Disabled="true"
+                          HelperText="O e-mail é usado para login e não pode ser alterado aqui." />
+
+            @* Notificações por WhatsApp (telefone + opt-in) OCULTAS por enquanto — feature em hold.
+               A estrutura (User.PhoneNumber/WhatsAppOptIn, command, query, migration) permanece no backend.
+               _model.PhoneNumber/WhatsAppOptIn seguem no round-trip do Submit para não zerar dados existentes.
+               Reexibir quando o envio via WhatsApp for ativado. *@
+
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="Submit" Disabled="_busy">@(_busy ? "Salvando..." : "Salvar")</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private ProfileViewModel? _model;
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Minha conta", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetProfileQuery());
+    }
+
+    private async Task Submit()
+    {
+        if (_model is null) return;
+        _busy = true;
+        try
+        {
+            var cmd = new UpdateProfileCommand
+            {
+                Name = _model.Name,
+                PhoneNumber = _model.PhoneNumber,
+                WhatsAppOptIn = _model.WhatsAppOptIn,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Perfil atualizado.", Severity.Success);
+        }
+        finally { _busy = false; }
+    }
+}

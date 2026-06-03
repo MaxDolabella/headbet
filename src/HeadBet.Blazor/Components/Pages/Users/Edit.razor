@@ -1,0 +1,74 @@
+@page "/users/{Id:guid}/edit"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Editar usuário — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Editar usuário" Icon="@Icons.Material.Filled.Edit" Breadcrumbs="@_crumbs" HelpAnchor="usuarios" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_model.Name" Label="Nome" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_model.Email" Label="E-mail" InputType="InputType.Email" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_model.Password" Label="Senha (deixe em branco para não alterar)"
+                          InputType="InputType.Password" Variant="Variant.Outlined" />
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="/users">Cancelar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="Submit" Disabled="_busy">Salvar</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private UserFormViewModel? _model;
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Usuários", "/users"),
+        new("Editar", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetUserQuery(Id));
+        if (_model is null) Nav.NavigateTo("/users");
+    }
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new UpdateUserCommand
+            {
+                Id = Id,
+                Name = _model!.Name,
+                Email = _model.Email,
+                Password = _model.Password,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Usuário atualizado.", Severity.Success);
+            Nav.NavigateTo("/users");
+        }
+        finally { _busy = false; }
+    }
+}

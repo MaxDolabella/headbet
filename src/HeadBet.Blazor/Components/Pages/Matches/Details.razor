@@ -1,0 +1,152 @@
+@page "/pools/{PoolId:guid}/matches/{Id:guid}"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Detalhes do jogo — HeadBet</PageTitle>
+
+@if (_match is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@($"Palpites {_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}")"
+                Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
+        <Actions>
+            @if (_match.IsAdmin)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
+                           Href="@($"/pools/{PoolId}/matches/{Id}/edit-score")">Editar placar</MudButton>
+            }
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="@($"/pools/{PoolId}/matches")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <MudCard Elevation="2" Class="mb-4">
+        @if (_match.CanEditMyBet)
+        {
+            <MudCardHeader><CardHeaderContent>
+                <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" /> Meu palpite</MudText>
+            </CardHeaderContent></MudCardHeader>
+        }
+        <MudCardContent>
+            <MatchLine ShowHeader="true" MatchDate="_match.MatchDate" Group="@_match.Group" Round="_match.Round"
+                       HomeName="@_match.HomeTeamName" HomeAbbreviation="@_match.HomeTeamAbbreviation" HomeFlagUrl="@_match.HomeTeamFlagUrl"
+                       AwayName="@_match.AwayTeamName" AwayAbbreviation="@_match.AwayTeamAbbreviation" AwayFlagUrl="@_match.AwayTeamFlagUrl"
+                       Editable="_match.CanEditMyBet"
+                       HomeScore="@(_match.CanEditMyBet ? _myHome : _match.HomeScore)"
+                       AwayScore="@(_match.CanEditMyBet ? _myAway : _match.AwayScore)"
+                       HomeScoreChanged="@(async v => _myHome = v)"
+                       AwayScoreChanged="@(async v => _myAway = v)" />
+            @if (_match.CanEditMyBet)
+            {
+                <div class="d-flex justify-content-center mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SaveBet" Disabled="_busy">Salvar palpite</MudButton>
+                </div>
+            }
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Elevation="2">
+        <MudCardHeader><CardHeaderContent>
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" /> Palpites (@_match.Bets.Count)</MudText>
+        </CardHeaderContent></MudCardHeader>
+        <MudCardContent>
+            <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th class="text-center">Palpite</th>
+                        <th class="text-end">Pontos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in _match.Bets)
+                    {
+                        <tr>
+                            <td>
+                                @b.UserName
+                                @if (b.IsMe)
+                                {
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">você</MudChip>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (b.CanShowBet && b.HasBet) { <b>@b.HomeScore x @b.AwayScore</b> }
+                                else if (b.CanShowBet) { <span class="mud-text-secondary">sem palpite</span> }
+                                else { <span class="mud-text-secondary">— x —</span> }
+                            </td>
+                            <td class="text-end">
+                                @if (b.CanShowBet)
+                                {
+                                    var color = b.AppliedRule switch
+                                    {
+                                        ScoreType.ExactScore => Color.Success,
+                                        ScoreType.WinnerAndDifference => Color.Info,
+                                        ScoreType.WinnerAndLoserGoals => Color.Info,
+                                        ScoreType.WinnerOnly => Color.Warning,
+                                        _ => Color.Default,
+                                    };
+                                    <MudChip T="string" Color="color" Size="Size.Small">@b.Points pts</MudChip>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid Id { get; set; }
+
+    private MatchDetailsViewModel? _match;
+    private int? _myHome;
+    private int? _myAway;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _match = await Bus.SendAsync(new GetMatchDetailsQuery(PoolId, Id));
+        if (_match is null)
+        {
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _myHome = _match.MyBetHome;
+        _myAway = _match.MyBetAway;
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_match.PoolName, $"/pools/{PoolId}"),
+            new("Jogos", $"/pools/{PoolId}/matches"),
+            new($"{_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}", null, disabled: true),
+        ];
+    }
+
+    private async Task SaveBet()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new SaveBetCommand { PoolId = PoolId, MatchId = Id, HomeScore = _myHome, AwayScore = _myAway };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                Snackbar.Add(result.Notifications?.FirstOrDefault()?.Details ?? "Não foi possível salvar o palpite.", Severity.Error);
+                return;
+            }
+            Snackbar.Add("Palpite salvo.", Severity.Success);
+            _match = await Bus.SendAsync(new GetMatchDetailsQuery(PoolId, Id));
+        }
+        finally { _busy = false; }
+    }
+}

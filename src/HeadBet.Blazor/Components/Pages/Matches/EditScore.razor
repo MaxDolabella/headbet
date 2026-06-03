@@ -1,0 +1,106 @@
+@page "/pools/{PoolId:guid}/matches/{Id:guid}/edit-score"
+@attribute [Authorize]
+@using HeadBet.Core.Domain.Enums
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Editar placar — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Editar placar" Icon="@Icons.Material.Filled.SportsSoccer" Breadcrumbs="@_crumbs" HelpAnchor="placar" />
+
+    <MudPaper Elevation="3" Class="pa-4 mb-4">
+        <MatchLine ShowHeader="true" MatchDate="_model.MatchDate" Group="@_model.Group" Round="_model.Round"
+                   HomeName="@_model.HomeTeamName" HomeAbbreviation="@_model.HomeTeamAbbreviation" HomeFlagUrl="@_model.HomeTeamFlagUrl"
+                   AwayName="@_model.AwayTeamName" AwayAbbreviation="@_model.AwayTeamAbbreviation" AwayFlagUrl="@_model.AwayTeamFlagUrl"
+                   Editable="@(!_isFinished)" Max="50" @bind-HomeScore="_model.HomeScore" @bind-AwayScore="_model.AwayScore" />
+
+        @if (_isFinished)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                Partida encerrada. Para alterar o placar, use a tela de edição da partida.
+            </MudAlert>
+            <div class="d-flex justify-content-center mt-4" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/matches")">Voltar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                           Href="@($"/pools/{PoolId}/matches/{Id}/edit")">Editar partida</MudButton>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex justify-content-center mt-4" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/matches")">Voltar</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="@(() => Submit(finish: false))" Disabled="_busy">Atualizar placar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Flag"
+                           OnClick="@(() => Submit(finish: true))" Disabled="_busy">Encerrar partida</MudButton>
+            </div>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid Id { get; set; }
+
+    private MatchScoreFormViewModel? _model;
+    private bool _busy;
+    private bool _isFinished;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetMatchScoreFormQuery(Id, PoolId));
+        if (_model is null) { Nav.NavigateTo($"/pools/{PoolId}/matches"); return; }
+        _isFinished = _model.Status == MatchStatus.Finished;
+        var poolName = await Bus.SendAsync(new GetPoolNameQuery(PoolId)) ?? "Bolão";
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(poolName, $"/pools/{PoolId}"),
+            new("Jogos", $"/pools/{PoolId}/matches"),
+            new("Editar placar", null, disabled: true),
+        ];
+    }
+
+    private async Task Submit(bool finish)
+    {
+        _busy = true;
+        try
+        {
+            var result = await Bus.SendAsync(new UpdateMatchScoreCommand
+            {
+                Id = Id,
+                PoolId = PoolId,
+                HomeScore = _model!.HomeScore,
+                AwayScore = _model.AwayScore,
+                Finish = finish,
+            });
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+
+            if (finish)
+            {
+                Snackbar.Add("Partida encerrada.", Severity.Success);
+                Nav.NavigateTo($"/pools/{PoolId}/matches");
+            }
+            else
+            {
+                Snackbar.Add("Placar atualizado.", Severity.Success);
+            }
+        }
+        finally { _busy = false; }
+    }
+}

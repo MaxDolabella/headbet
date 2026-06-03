@@ -1,0 +1,117 @@
+@page "/pools/{PoolId:guid}/matches/create"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Novo jogo — HeadBet</PageTitle>
+
+@if (_teams is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Novo jogo" Icon="@Icons.Material.Filled.Add" Breadcrumbs="@_crumbs" HelpAnchor="jogos" />
+
+    @if (_teams.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4" Style="max-width:680px;">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Nenhum time cadastrado neste bolão.</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Para cadastrar jogos é preciso ter times. Cadastre-os pelo wizard (importa competição/times/jogos automaticamente) ou manualmente.
+            </MudText>
+            <div class="d-flex flex-wrap" style="gap:.5rem;">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                           Href="@($"/pools/{PoolId}/setup-tournament-wizard")">Cadastrar via wizard</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           Href="@($"/pools/{PoolId}/teams/create")">Cadastrar time manualmente</MudButton>
+            </div>
+        </MudAlert>
+    }
+    else
+    {
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:680px;">
+        <MudStack Spacing="3">
+            <MudSelect T="Guid" @bind-Value="_model.HomeTeamId" Label="Time mandante" Variant="Variant.Outlined">
+                @foreach (var t in _teams) { <MudSelectItem Value="@t.Id">@t.Abbreviation — @t.Name</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_model.AwayTeamId" Label="Time visitante" Variant="Variant.Outlined">
+                @foreach (var t in _teams) { <MudSelectItem Value="@t.Id">@t.Abbreviation — @t.Name</MudSelectItem> }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_date" Label="Data" Variant="Variant.Outlined" />
+            <MudTimePicker @bind-Time="_time" Label="Hora" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_model.Group" Label="Grupo" Variant="Variant.Outlined" Placeholder="ex: A" />
+            <MudNumericField T="byte" @bind-Value="_model.Round" Min="(byte)0" Max="(byte)255" Label="Rodada" Variant="Variant.Outlined" />
+            <MudSelect T="MatchStatus" @bind-Value="_model.Status" Label="Status" Variant="Variant.Outlined">
+                @foreach (var s in Enum.GetValues<MatchStatus>()) { <MudSelectItem Value="@s">@s</MudSelectItem> }
+            </MudSelect>
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/matches")">Cancelar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check"
+                           OnClick="Submit" Disabled="_busy">@(_busy ? "Salvando..." : "Salvar")</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+
+    private List<TeamListViewModel>? _teams;
+    private MatchFormViewModel _model = new();
+    private DateTime? _date = DateTime.Today;
+    private TimeSpan? _time = new(20, 0, 0);
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _teams = await Bus.SendAsync(new ListTeamsQuery(PoolId));
+        _model.PoolId = PoolId;
+        var poolName = await Bus.SendAsync(new GetPoolNameQuery(PoolId)) ?? "Bolão";
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(poolName, $"/pools/{PoolId}"),
+            new("Jogos", $"/pools/{PoolId}/matches"),
+            new("Novo", null, disabled: true),
+        ];
+    }
+
+    private async Task Submit()
+    {
+        if (_date is null || _time is null)
+        {
+            Snackbar.Add("Informe data e hora do jogo.", Severity.Warning);
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var cmd = new CreateMatchCommand
+            {
+                PoolId = PoolId,
+                HomeTeamId = _model.HomeTeamId,
+                AwayTeamId = _model.AwayTeamId,
+                MatchDate = _date.Value.Date + _time.Value,
+                Status = _model.Status,
+                Group = _model.Group,
+                Round = _model.Round,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Jogo cadastrado com sucesso.", Severity.Success);
+            Nav.NavigateTo($"/pools/{PoolId}/matches");
+        }
+        finally { _busy = false; }
+    }
+}

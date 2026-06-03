@@ -1,0 +1,73 @@
+@page "/pools/{PoolId:guid}/teams"
+@attribute [Authorize]
+@inject IBus Bus
+
+<PageTitle>Times — HeadBet</PageTitle>
+
+@if (_teams is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Times" Icon="@Icons.Material.Filled.Flag" Breadcrumbs="@_crumbs" HelpAnchor="times">
+        <Actions>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add"
+                       Href="@($"/pools/{PoolId}/teams/create")">Novo time</MudButton>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Href="@($"/pools/{PoolId}")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_teams.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Nenhum time cadastrado neste bolão.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudDataGrid Items="_teams" Hover="true" Dense="true">
+                <Columns>
+                    <TemplateColumn Title="">
+                        <CellTemplate Context="ctx">
+                            @if (!string.IsNullOrWhiteSpace(ctx.Item.FlagUrl))
+                            {
+                                <img src="@ctx.Item.FlagUrl" alt="@ctx.Item.Abbreviation" style="width:32px;height:32px;object-fit:contain;" />
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.Abbreviation" Title="Abreviação" />
+                    <PropertyColumn Property="x => x.Name" Title="Nome" />
+                    <TemplateColumn Title="Ações" CellClass="text-end">
+                        <CellTemplate Context="ctx">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
+                                           Href="@($"/pools/{PoolId}/teams/{ctx.Item.Id}/edit")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           Href="@($"/pools/{PoolId}/teams/{ctx.Item.Id}/delete")" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+        <MudText Class="mud-text-secondary mt-2">@_teams.Count time(s) cadastrado(s).</MudText>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    private List<TeamListViewModel>? _teams;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _teams = await Bus.SendAsync(new ListTeamsQuery(PoolId));
+        var poolName = await Bus.SendAsync(new GetPoolNameQuery(PoolId)) ?? "Bolão";
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(poolName, $"/pools/{PoolId}"),
+            new("Times", null, disabled: true),
+        ];
+    }
+}

@@ -1,0 +1,20 @@
+@switch (Status)
+{
+    case PoolMemberStatus.Pending:
+        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.HourglassEmpty">Aguardando aprovação</MudChip>
+        break;
+    case PoolMemberStatus.Active when Role == PoolMemberRole.Admin:
+        <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Shield">Admin</MudChip>
+        break;
+    case PoolMemberStatus.Active:
+        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">Participante</MudChip>
+        break;
+    default:
+        <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Text">—</MudChip>
+        break;
+}
+
+@code {
+    [Parameter] public PoolMemberStatus? Status { get; set; }
+    [Parameter] public PoolMemberRole Role { get; set; }
+}

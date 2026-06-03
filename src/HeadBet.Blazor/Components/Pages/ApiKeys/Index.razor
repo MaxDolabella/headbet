@@ -1,0 +1,99 @@
+@page "/api-keys"
+@attribute [Authorize]
+@inject IBus Bus
+@inject ISnackbar Snackbar
+
+<PageTitle>Minhas API Keys — HeadBet</PageTitle>
+
+<PageHeader Title="Minhas API Keys" Icon="@Icons.Material.Filled.VpnKey" Breadcrumbs="@_crumbs">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Href="/api-keys/create">
+            Nova API Key
+        </MudButton>
+    </Actions>
+</PageHeader>
+
+@if (_keys is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_keys.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Nenhuma API Key cadastrada. Cadastre uma para usar o assistente de IA nos bolões.
+    </MudAlert>
+}
+else
+{
+    <MudPaper Elevation="2">
+        <MudDataGrid Items="_keys" Hover="true" Dense="true">
+            <Columns>
+                <TemplateColumn Title="Modelo">
+                    <CellTemplate Context="ctx">
+                        <b>@ctx.Item.AiModelDisplayName</b>
+                        <br /><small class="mud-text-secondary"><code>@ctx.Item.AiModelName</code></small>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.MaskedKey" Title="API Key" />
+                <TemplateColumn Title="Status">
+                    <CellTemplate Context="ctx">
+                        @if (ctx.Item.IsDefault)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Star">Padrão</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Text">—</MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.CreatedAt" Title="Criada em" Format="dd/MM/yyyy HH:mm" />
+                <TemplateColumn Title="Ações" CellClass="text-end">
+                    <CellTemplate Context="ctx">
+                        <MudIconButton Icon="@(ctx.Item.IsDefault ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)"
+                                       Size="Size.Small" Color="@(ctx.Item.IsDefault ? Color.Warning : Color.Default)"
+                                       OnClick="@(() => Toggle(ctx.Item.Id))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => Remove(ctx.Item.Id))" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+@code {
+    private List<UserApiKeyListViewModel>? _keys;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("API Keys", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+        => _keys = await Bus.SendAsync(new ListUserApiKeysQuery());
+
+    private async Task Toggle(Guid id)
+    {
+        var result = await Bus.SendAsync(new ToggleUserApiKeyCommand { Id = id });
+        if (!result.IsValid)
+        {
+            Snackbar.Add(result.Notifications?.FirstOrDefault()?.Details ?? "Erro ao alterar padrão.", Severity.Error);
+            return;
+        }
+        Snackbar.Add("API Key padrão alterada.", Severity.Success);
+        _keys = await Bus.SendAsync(new ListUserApiKeysQuery());
+    }
+
+    private async Task Remove(Guid id)
+    {
+        var result = await Bus.SendAsync(new DeleteUserApiKeyCommand { Id = id });
+        if (!result.IsValid)
+        {
+            Snackbar.Add(result.Notifications?.FirstOrDefault()?.Details ?? "Erro ao apagar API Key.", Severity.Error);
+            return;
+        }
+        Snackbar.Add("API Key removida.", Severity.Success);
+        _keys = await Bus.SendAsync(new ListUserApiKeysQuery());
+    }
+}

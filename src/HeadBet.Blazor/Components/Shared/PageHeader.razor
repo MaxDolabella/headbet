@@ -1,0 +1,43 @@
+<div class="hb-page-header mb-4">
+    <div>
+        @if (Breadcrumbs is not null && Breadcrumbs.Count > 0)
+        {
+            <MudBreadcrumbs Items="Breadcrumbs" Separator=">" Class="pa-0 mb-1" />
+        }
+        <MudText Typo="Typo.h4" Class="d-flex align-items-center" Style="gap:.5rem;">
+            @if (!string.IsNullOrEmpty(Icon))
+            {
+                <MudIcon Icon="@Icon" Color="Color.Primary" />
+            }
+            @Title
+        </MudText>
+        @if (!string.IsNullOrEmpty(Subtitle))
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Subtitle</MudText>
+        }
+    </div>
+    @if (Actions is not null || !string.IsNullOrEmpty(HelpAnchor))
+    {
+        <div class="d-flex align-center" style="gap:.5rem;">
+            @Actions
+            @if (!string.IsNullOrEmpty(HelpAnchor))
+            {
+                <MudTooltip Text="O que é e como usar esta tela">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Info"
+                                   Href="@($"/guide#{HelpAnchor}")" Target="_blank" aria-label="Ajuda sobre esta tela" />
+                </MudTooltip>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public List<BreadcrumbItem>? Breadcrumbs { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Âncora da seção no Guia (/guide#{HelpAnchor}). Quando definida, exibe o botão de ajuda.</summary>
+    [Parameter] public string? HelpAnchor { get; set; }
+}

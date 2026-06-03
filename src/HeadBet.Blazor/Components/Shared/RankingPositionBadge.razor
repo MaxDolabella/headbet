@@ -1,0 +1,27 @@
+@*
+    Badge de posição no ranking. Pódio premiado recebe cores metálicas
+    (1º ouro, 2º prata, 3º bronze); demais posições premiadas usam uma cor
+    única (roxo); posições sem prêmio ficam com o número simples.
+*@
+@if (IsAwarded)
+{
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+             Icon="@Icons.Material.Filled.EmojiEvents" Style="@_badgeStyle">@Position&ordm;</MudChip>
+}
+else
+{
+    <span>@Position&ordm;</span>
+}
+
+@code {
+    [Parameter] public int Position { get; set; }
+    [Parameter] public bool IsAwarded { get; set; }
+
+    private string _badgeStyle => Position switch
+    {
+        1 => "background-color:#D4AF37;color:#1a1a1a;font-weight:600;",
+        2 => "background-color:#BFC1C2;color:#1a1a1a;font-weight:600;",
+        3 => "background-color:#CD7F32;color:#ffffff;font-weight:600;",
+        _ => "background-color:#7E57C2;color:#ffffff;font-weight:600;",
+    };
+}

@@ -1,0 +1,77 @@
+@page "/ai-models/{Id:guid}/edit"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Editar modelo de IA — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Editar modelo de IA" Icon="@Icons.Material.Filled.Edit" Breadcrumbs="@_crumbs" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:560px;">
+        <MudStack Spacing="3">
+            <MudSelect T="AiProvider" @bind-Value="_model.Provider" Label="Provider" Variant="Variant.Outlined">
+                @foreach (var p in Enum.GetValues<AiProvider>()) { <MudSelectItem Value="@p">@p</MudSelectItem> }
+            </MudSelect>
+            <MudTextField @bind-Value="_model.Name" Label="Nome" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_model.DisplayName" Label="Nome de exibição" Variant="Variant.Outlined" />
+            <MudSwitch T="bool" @bind-Value="_model.IsActive" Label="Ativo" Color="Color.Success" />
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="/ai-models">Cancelar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="Submit" Disabled="_busy">Salvar</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private AiModelFormViewModel? _model;
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Modelos de IA", "/ai-models"),
+        new("Editar", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetAiModelQuery(Id));
+        if (_model is null) { Nav.NavigateTo("/ai-models"); return; }
+    }
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new UpdateAiModelCommand
+            {
+                Id = Id,
+                Name = _model!.Name,
+                DisplayName = _model.DisplayName,
+                Provider = _model.Provider,
+                IsActive = _model.IsActive,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Modelo atualizado.", Severity.Success);
+            Nav.NavigateTo("/ai-models");
+        }
+        finally { _busy = false; }
+    }
+}

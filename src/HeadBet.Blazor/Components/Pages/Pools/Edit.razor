@@ -1,0 +1,192 @@
+@page "/pools/{Id:guid}/edit"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Editar bolão — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Editar bolão" Icon="@Icons.Material.Filled.Edit" Breadcrumbs="@_crumbs" HelpAnchor="criar-bolao" />
+
+    <MudForm Model="_model">
+        <MudPaper Elevation="2" Class="pa-6 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-4"><MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> Dados do bolão</MudText>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_model.Name" Label="Nome" Variant="Variant.Outlined" Required="true" />
+                <MudTextField @bind-Value="_model.Description" Label="Descrição" Variant="Variant.Outlined" Lines="3" />
+
+                <MudSwitch T="bool" Value="_model.IsPaid" ValueChanged="OnPaidChanged" Label="Bolão pago" Color="Color.Warning" />
+
+                @if (_model.IsPaid)
+                {
+                    <MoneyField @bind-Value="EntryFeeValue" Label="Taxa de inscrição" />
+                }
+
+                <MudSwitch T="bool" @bind-Value="_model.IsPublic" Label="Bolão público" Color="Color.Info" />
+                <MudSwitch T="bool" @bind-Value="_model.AutoAccept" Label="Aceitar novos membros automaticamente" Color="Color.Primary" />
+                <MudSwitch T="bool" @bind-Value="_model.IsActive" Label="Ativo" Color="Color.Success" />
+            </MudStack>
+        </MudPaper>
+
+        @if (_model.IsPaid)
+        {
+            <MudPaper Elevation="2" Class="pa-6 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-4"><MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Small" /> Premiação</MudText>
+                <MudStack Spacing="2">
+                    <MoneyField @bind-Value="_model.CollectedAmount" Label="Valor arrecadado" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Valor efetivamente arrecadado. Define a base da distribuição por posição e é salvo com o bolão.
+                        Sugerido a partir de taxa × participantes ativos; edite à vontade.
+                    </MudText>
+
+                    <MudDivider Class="my-2" />
+
+                    @for (var i = 0; i < _model.Prizes.Count; i++)
+                    {
+                        var idx = i;
+                        var prize = _model.Prizes[idx];
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudText Class="flex-grow-1 ma-0">@prize.Position&ordm; lugar</MudText>
+                            <MudText Class="mud-text-secondary ma-0" Style="min-width:110px; text-align:right;">
+                                R$ @(AmountFor(prize).ToString("N2", _brCulture))
+                            </MudText>
+                            <div style="width:160px; flex:0 0 160px;">
+                                <MudNumericField T="decimal?" @bind-Value="prize.Percentage" Min="0m" Max="100m" Step="1m"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2" Culture="@_brCulture"
+                                                 FullWidth="true" Adornment="Adornment.End" AdornmentText="%" />
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => RemovePrize(idx))" Disabled="@(_model.Prizes.Count <= 1)" />
+                        </MudStack>
+                    }
+                    <div>
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddPrize">
+                            Adicionar posição
+                        </MudButton>
+                    </div>
+
+                    <MudDivider Class="my-2" />
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Color="@(IsPercentValid ? Color.Success : Color.Error)">
+                            Soma: @(TotalPercent.ToString("N2", _brCulture))% — distribui R$ @(DistributedAmount.ToString("N2", _brCulture))
+                        </MudText>
+                        @if (!IsPercentValid)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error">A soma das porcentagens deve ser 100%.</MudText>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
+
+        <div class="d-flex" style="gap:.5rem;">
+            <MudButton Variant="Variant.Text" Href="@($"/pools/{Id}")">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="Submit" Disabled="_busy">
+                @(_busy ? "Salvando..." : "Salvar")
+            </MudButton>
+        </div>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private PoolEditViewModel? _model;
+    private bool _busy;
+    private readonly System.Globalization.CultureInfo _brCulture = new("pt-BR");
+    private List<BreadcrumbItem> _crumbs = new();
+
+    private decimal EntryFeeValue
+    {
+        get => _model?.EntryFee ?? 0m;
+        set { if (_model is not null) _model.EntryFee = value; }
+    }
+
+    private decimal TotalPercent => _model?.Prizes.Sum(p => p.Percentage ?? 0m) ?? 0m;
+    private bool IsPercentValid => Math.Abs(TotalPercent - 100m) <= 0.01m;
+    private decimal AmountFor(PrizeItemViewModel prize) => (_model?.CollectedAmount ?? 0m) * (prize.Percentage ?? 0m) / 100m;
+    private decimal DistributedAmount => (_model?.CollectedAmount ?? 0m) * TotalPercent / 100m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetPoolEditQuery(Id));
+        if (_model is null)
+        {
+            Snackbar.Add("Bolão não encontrado ou você não é admin.", Severity.Error);
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_model.Name, $"/pools/{Id}"),
+            new("Editar", null, disabled: true),
+        ];
+    }
+
+    private void OnPaidChanged(bool value)
+    {
+        _model!.IsPaid = value;
+        if (value && _model.Prizes.Count == 0)
+        {
+            _model.Prizes =
+            [
+                new() { Position = 1, Percentage = 50m },
+                new() { Position = 2, Percentage = 30m },
+                new() { Position = 3, Percentage = 20m },
+            ];
+        }
+    }
+
+    private void AddPrize()
+        => _model!.Prizes.Add(new PrizeItemViewModel { Position = _model.Prizes.Count + 1 });
+
+    private void RemovePrize(int idx)
+    {
+        _model!.Prizes.RemoveAt(idx);
+        for (var i = 0; i < _model.Prizes.Count; i++)
+            _model.Prizes[i].Position = i + 1;
+    }
+
+    private async Task Submit()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new UpdatePoolCommand
+            {
+                Id = Id,
+                Name = _model!.Name,
+                Description = _model.Description,
+                IsPaid = _model.IsPaid,
+                EntryFee = _model.IsPaid ? _model.EntryFee : null,
+                CollectedAmount = _model.IsPaid ? _model.CollectedAmount : null,
+                AutoAccept = _model.AutoAccept,
+                IsActive = _model.IsActive,
+                IsPublic = _model.IsPublic,
+                PrizeMode = _model.PrizeMode,
+                Prizes = _model.IsPaid ? _model.Prizes : [],
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Bolão atualizado.", Severity.Success);
+            Nav.NavigateTo($"/pools/{Id}");
+        }
+        finally { _busy = false; }
+    }
+}

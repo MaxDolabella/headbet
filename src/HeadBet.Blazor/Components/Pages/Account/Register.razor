@@ -1,0 +1,48 @@
+@page "/account/register"
+@layout HeadBet.Blazor.Components.Layout.MainLayout
+@attribute [AllowAnonymous]
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>Criar conta — HeadBet</PageTitle>
+
+<MudPaper Elevation="4" Class="hb-auth-card pa-6">
+    <MudText Typo="Typo.h5" Class="mb-1"><MudIcon Icon="@Icons.Material.Filled.PersonAdd" /> Criar conta</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Comece a palpitar agora.</MudText>
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-3" Dense="true">@Error</MudAlert>
+    }
+
+    <form method="post" action="/account/sign-in">
+        <AntiforgeryToken />
+        <input type="hidden" name="action" value="register" />
+        <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+
+        <MudStack Spacing="3">
+            <MudTextField T="string" Label="Nome" Variant="Variant.Outlined" name="name" Required="true" />
+            <MudTextField T="string" Label="E-mail" Variant="Variant.Outlined" InputType="InputType.Email"
+                          name="email" Value="@Email" Required="true" />
+            <PasswordField Name="password" Label="Senha" HelperText="Mínimo 6 caracteres." />
+            <PasswordField Name="confirmPassword" Label="Confirmar senha" />
+            <label class="hb-checkbox">
+                <input type="checkbox" name="rememberMe" value="true" />
+                <span>Lembrar de mim</span>
+            </label>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       FullWidth="true" StartIcon="@Icons.Material.Filled.PersonAdd">Criar minha conta</MudButton>
+            <MudText Typo="Typo.caption" Class="text-center mud-text-secondary">
+                Já tem conta? <MudLink Href="@($"/account/login{BuildReturnUrlQuery()}")">Entrar</MudLink>
+            </MudText>
+        </MudStack>
+    </form>
+</MudPaper>
+
+@code {
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    [SupplyParameterFromQuery] public string? Email { get; set; }
+
+    private string BuildReturnUrlQuery()
+        => string.IsNullOrWhiteSpace(ReturnUrl) ? string.Empty : $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+}

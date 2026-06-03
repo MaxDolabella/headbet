@@ -1,0 +1,12 @@
+@if (IsActive)
+{
+    <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">Ativo</MudChip>
+}
+else
+{
+    <MudChip T="string" Color="Color.Default" Size="Size.Small" Variant="Variant.Filled">Inativo</MudChip>
+}
+
+@code {
+    [Parameter] public bool IsActive { get; set; }
+}

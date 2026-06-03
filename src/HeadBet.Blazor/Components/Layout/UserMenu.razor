@@ -1,0 +1,21 @@
+<AuthorizeView Context="authCtx">
+    <Authorized>
+        <MudMenu Label="@authCtx.User.Identity?.Name"
+                 StartIcon="@Icons.Material.Filled.AccountCircle"
+                 EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                 Variant="Variant.Text" Color="Color.Inherit">
+            <MudMenuItem Icon="@Icons.Material.Filled.ManageAccounts" Href="/account/profile">Minha conta</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Password" Href="/account/change-password">Trocar senha</MudMenuItem>
+            <MudDivider />
+            <MudMenuItem Icon="@Icons.Material.Filled.Logout" Href="/account/logout">Sair</MudMenuItem>
+        </MudMenu>
+    </Authorized>
+    <NotAuthorized>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/account/login"
+                   StartIcon="@Icons.Material.Filled.Login">Entrar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/account/register" Class="ml-2"
+                   StartIcon="@Icons.Material.Filled.PersonAdd">Criar conta</MudButton>
+    </NotAuthorized>
+</AuthorizeView>
+

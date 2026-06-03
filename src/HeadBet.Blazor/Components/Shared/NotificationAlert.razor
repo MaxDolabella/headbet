@@ -1,0 +1,28 @@
+@using Headsoft.Core
+@using HeadBet.Core.Models
+
+@if (View is not null)
+{
+    <MudAlert Severity="@MapSeverity(View.Type)" Variant="Variant.Outlined" Dense="false" Class="mb-2">
+        @if (!string.IsNullOrWhiteSpace(View.Title))
+        {
+            <MudText Typo="Typo.subtitle2"><b>@View.Title</b></MudText>
+        }
+        @if (!string.IsNullOrWhiteSpace(View.Details))
+        {
+            <MudText Typo="Typo.body2">@View.Details</MudText>
+        }
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public NotificationView? View { get; set; }
+
+    private static Severity MapSeverity(ResultTypes type) => type switch
+    {
+        ResultTypes.Success => Severity.Success,
+        ResultTypes.Info    => Severity.Info,
+        ResultTypes.Warning => Severity.Warning,
+        _                   => Severity.Error,
+    };
+}

@@ -1,0 +1,99 @@
+@page "/pools/{PoolId:guid}/matches/{Id:guid}/edit"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Editar jogo — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Editar jogo" Icon="@Icons.Material.Filled.Edit" Breadcrumbs="@_crumbs" HelpAnchor="jogos" />
+
+    <MudPaper Elevation="2" Class="pa-6" Style="max-width:680px;">
+        <MudStack Spacing="3">
+            <MudSelect T="Guid" @bind-Value="_model.HomeTeamId" Label="Time mandante" Variant="Variant.Outlined">
+                @foreach (var t in _model.AvailableTeams) { <MudSelectItem Value="@t.Id">@t.Abbreviation — @t.Name</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="Guid" @bind-Value="_model.AwayTeamId" Label="Time visitante" Variant="Variant.Outlined">
+                @foreach (var t in _model.AvailableTeams) { <MudSelectItem Value="@t.Id">@t.Abbreviation — @t.Name</MudSelectItem> }
+            </MudSelect>
+            <MudDatePicker @bind-Date="_date" Label="Data" Variant="Variant.Outlined" />
+            <MudTimePicker @bind-Time="_time" Label="Hora" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_model.Group" Label="Grupo" Variant="Variant.Outlined" />
+            <MudNumericField T="byte" @bind-Value="_model.Round" Min="(byte)0" Max="(byte)255" Label="Rodada" Variant="Variant.Outlined" />
+            <MudSelect T="MatchStatus" @bind-Value="_model.Status" Label="Status" Variant="Variant.Outlined">
+                @foreach (var s in Enum.GetValues<MatchStatus>()) { <MudSelectItem Value="@s">@s</MudSelectItem> }
+            </MudSelect>
+            <div class="d-flex" style="gap:.5rem;">
+                <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/matches")">Cancelar</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="Submit" Disabled="_busy">@(_busy ? "Salvando..." : "Salvar")</MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid Id { get; set; }
+
+    private MatchFormViewModel? _model;
+    private DateTime? _date;
+    private TimeSpan? _time;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetMatchQuery(Id, PoolId));
+        if (_model is null) { Nav.NavigateTo($"/pools/{PoolId}/matches"); return; }
+        _model.AvailableTeams = await Bus.SendAsync(new ListTeamsQuery(PoolId));
+        _date = _model.MatchDate.Date;
+        _time = _model.MatchDate.TimeOfDay;
+        var poolName = await Bus.SendAsync(new GetPoolNameQuery(PoolId)) ?? "Bolão";
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(poolName, $"/pools/{PoolId}"),
+            new("Jogos", $"/pools/{PoolId}/matches"),
+            new("Editar", null, disabled: true),
+        ];
+    }
+
+    private async Task Submit()
+    {
+        if (_date is null || _time is null) { Snackbar.Add("Informe data e hora.", Severity.Warning); return; }
+        _busy = true;
+        try
+        {
+            var cmd = new UpdateMatchCommand
+            {
+                Id = Id,
+                PoolId = PoolId,
+                HomeTeamId = _model!.HomeTeamId,
+                AwayTeamId = _model.AwayTeamId,
+                MatchDate = _date.Value.Date + _time.Value,
+                Status = _model.Status,
+                Group = _model.Group,
+                Round = _model.Round,
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Jogo atualizado.", Severity.Success);
+            Nav.NavigateTo($"/pools/{PoolId}/matches");
+        }
+        finally { _busy = false; }
+    }
+}

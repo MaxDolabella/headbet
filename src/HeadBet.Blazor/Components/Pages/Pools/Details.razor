@@ -1,0 +1,272 @@
+@page "/pools/{Id:guid}"
+@attribute [AllowAnonymous]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+
+<PageTitle>@(_pool?.Name ?? "Bolão") — HeadBet</PageTitle>
+
+@if (_pool is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@_pool.Name" Icon="@Icons.Material.Filled.EmojiEvents"
+                Subtitle="@_pool.Description" Breadcrumbs="@_crumbs" HelpAnchor="boloes">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.BarChart" Href="@($"/pools/{Id}/ranking")">Ranking</MudButton>
+            @if (_pool.IsMember)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.Casino" Href="@($"/pools/{Id}/bets")">Palpitar</MudButton>
+            }
+            @if (_pool.IsAdmin)
+            {
+                @* Configurar via IA oculto temporariamente — código preservado em /pools/{id}/setup-tournament.
+                   Para reativar, descomente o item correspondente abaixo. *@
+                <MudMenu Label="Admin" Icon="@Icons.Material.Filled.AdminPanelSettings"
+                         Variant="Variant.Outlined" Color="Color.Warning" EndIcon="@Icons.Material.Filled.ArrowDropDown">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" Href="@($"/pools/{Id}/edit")">Editar dados</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.People" Href="@($"/pools/{Id}/members")">Participantes</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Flag" Href="@($"/pools/{Id}/teams")">Times</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.SportsSoccer" Href="@($"/pools/{Id}/matches")">Jogos</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Checklist" Href="@($"/pools/{Id}/setup-tournament-wizard")">Configurar torneio</MudMenuItem>
+                    @* <MudMenuItem Icon="@Icons.Material.Filled.SmartToy" Href="@($"/pools/{Id}/setup-tournament")">Configurar via IA</MudMenuItem> *@
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="@($"/pools/{Id}/delete")">Apagar bolão</MudMenuItem>
+                </MudMenu>
+            }
+            else if (_pool.IsMember)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info"
+                           StartIcon="@Icons.Material.Filled.SportsSoccer" Href="@($"/pools/{Id}/matches")">Jogos</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (_pool.Ranking.Count > 0)
+    {
+        <MudPaper Elevation="3" Class="mb-6" Style="border-left: 4px solid var(--mud-palette-warning);">
+            <div class="pa-4 d-flex justify-content-between align-items-center">
+                <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" /> Classificação</MudText>
+                <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.OpenInNew" Href="@($"/pools/{Id}/ranking")">Ver completo</MudButton>
+            </div>
+            <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+                <thead>
+                    <tr>
+                        <th style="width:60px" class="text-center">#</th>
+                        <th>Participante</th>
+                        <th class="text-end">Pontos</th>
+                        @if (_pool.IsPaid)
+                        {
+                            <th class="text-end">Prêmio</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _pool.Ranking)
+                    {
+                        <tr style="@(r.IsCurrentUser ? "background-color: rgba(255,255,255,.05);font-weight:600;" : "")">
+                            <td class="text-center" style="text-align:center;">
+                                <RankingPositionBadge Position="r.Position" IsAwarded="r.IsAwarded" />
+                            </td>
+                            <td>
+                                @r.UserName
+                                @if (r.IsCurrentUser)
+                                {
+                                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">você</MudChip>
+                                }
+                            </td>
+                            <td class="text-end"><b>@r.TotalPoints</b></td>
+                            @if (_pool.IsPaid)
+                            {
+                                <td class="text-end">
+                                    @if (r.PrizeAmount > 0)
+                                    {
+                                        <b>R$ @r.PrizeAmount.ToString("N2")</b>
+                                    }
+                                    else
+                                    {
+                                        <span class="mud-text-secondary">—</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Class="h-100">
+                <MudCardHeader><CardHeaderContent>
+                    <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> Dados</MudText>
+                </CardHeaderContent></MudCardHeader>
+                <MudCardContent>
+                    <div class="hb-data-grid">
+                        <span class="mud-text-secondary">Visibilidade</span>
+                        <span><PoolVisibilityBadge IsPublic="@_pool.IsPublic" /></span>
+
+                        <span class="mud-text-secondary">Tipo</span>
+                        <span>@(_pool.IsPaid ? "Pago" : "Grátis")</span>
+
+                        @if (_pool.IsPaid)
+                        {
+                            <span class="mud-text-secondary">Taxa de inscrição</span>
+                            <span>R$ @_pool.EntryFee?.ToString("N2")</span>
+                        }
+
+                        <span class="mud-text-secondary">Auto-aceite</span>
+                        <span>@(_pool.AutoAccept ? "Sim" : "Não")</span>
+
+                        <span class="mud-text-secondary">Status</span>
+                        <span><PoolStatusBadge IsActive="@_pool.IsActive" /></span>
+
+                        <span class="mud-text-secondary">Criado em</span>
+                        <span>@_pool.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <ScoringRulesCard Rules="_pool.ScoringRules" />
+        </MudItem>
+
+        @if (_pool.IsPaid && _pool.Prizes.Count > 0)
+        {
+            <MudItem xs="12" md="6">
+                <PrizesCard Prizes="_pool.Prizes" Mode="_pool.PrizeMode" ShowCalculated="true" CollectedAmount="_pool.CollectedAmount" />
+            </MudItem>
+        }
+
+        @if (_pool.IsAdmin)
+        {
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Class="h-100">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" /> Link de convite</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                            Compartilhe para convidar pessoas. Quem acessar entra direto como participante ativo.
+                        </MudText>
+                        <MudTextField T="string" Value="@_inviteUrl" ReadOnly="true" Variant="Variant.Outlined"
+                                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                                      OnAdornmentClick="CopyInvite" />
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+
+        @if (_pool.IsMember)
+        {
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Class="h-100">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" /> Membros (@_pool.Members.Count)</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+                            <tbody>
+                            @foreach (var m in _pool.Members)
+                            {
+                                <tr>
+                                    <td>@m.UserName</td>
+                                    <td><PoolMemberRoleBadge Status="@m.Status" Role="@m.Role" /></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudExpansionPanels Class="mt-6">
+        <MudExpansionPanel Text="@($"Jogos — {_pool.UpcomingMatches.Count} próximos · {_pool.FinishedMatches.Count} finalizados")"
+                           Icon="@Icons.Material.Filled.SportsSoccer">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Próximos</MudText>
+                    @if (_pool.UpcomingMatches.Count == 0)
+                    {
+                        <MudText Class="mud-text-secondary">Nenhum jogo futuro.</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var m in _pool.UpcomingMatches)
+                        {
+                            <MudPaper Elevation="0" Class="pa-2 mb-1 hb-match-card-link" Outlined="true"
+                                      @onclick="@(() => Nav.NavigateTo($"/pools/{Id}/matches/{m.Id}"))">
+                                <MatchLine Dense="true" ShowHeader="true" MatchDate="m.MatchDate" Round="@((int)m.Round)" Group="@m.Group"
+                                           HomeName="@m.HomeTeamName" HomeAbbreviation="@m.HomeTeamAbbreviation" HomeFlagUrl="@m.HomeTeamFlagUrl"
+                                           AwayName="@m.AwayTeamName" AwayAbbreviation="@m.AwayTeamAbbreviation" AwayFlagUrl="@m.AwayTeamFlagUrl"
+                                           HomeScore="@m.HomeScore" AwayScore="@m.AwayScore" />
+                            </MudPaper>
+                        }
+                        <MudButton Variant="Variant.Text" Href="@($"/pools/{Id}/matches")">Ver todos</MudButton>
+                    }
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Finalizados</MudText>
+                    @if (_pool.FinishedMatches.Count == 0)
+                    {
+                        <MudText Class="mud-text-secondary">Nenhum jogo finalizado.</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var m in _pool.FinishedMatches)
+                        {
+                            <MudPaper Elevation="0" Class="pa-2 mb-1 hb-match-card-link" Outlined="true"
+                                      @onclick="@(() => Nav.NavigateTo($"/pools/{Id}/matches/{m.Id}"))">
+                                <MatchLine Dense="true" ShowHeader="true" MatchDate="m.MatchDate" Round="@((int)m.Round)" Group="@m.Group"
+                                           HomeName="@m.HomeTeamName" HomeAbbreviation="@m.HomeTeamAbbreviation" HomeFlagUrl="@m.HomeTeamFlagUrl"
+                                           AwayName="@m.AwayTeamName" AwayAbbreviation="@m.AwayTeamAbbreviation" AwayFlagUrl="@m.AwayTeamFlagUrl"
+                                           HomeScore="@m.HomeScore" AwayScore="@m.AwayScore" />
+                            </MudPaper>
+                        }
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private PoolDetailsViewModel? _pool;
+    private string _inviteUrl = string.Empty;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pool = await Bus.SendAsync(new GetPoolDetailsQuery(Id));
+        if (_pool is null)
+        {
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _inviteUrl = $"{Nav.BaseUri.TrimEnd('/')}/join/{_pool.InviteCode}";
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_pool.Name, null, disabled: true),
+        ];
+    }
+
+    private async Task CopyInvite()
+    {
+        await Js.InvokeVoidAsync("navigator.clipboard.writeText", _inviteUrl);
+        Snackbar.Add("Link copiado!", Severity.Success);
+    }
+}

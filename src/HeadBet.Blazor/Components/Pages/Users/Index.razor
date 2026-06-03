@@ -1,0 +1,53 @@
+@page "/users"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+
+<PageTitle>Usuários — HeadBet</PageTitle>
+
+<PageHeader Title="Usuários" Icon="@Icons.Material.Filled.People" Breadcrumbs="@_crumbs" HelpAnchor="usuarios">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Href="/users/create">
+            Novo usuário
+        </MudButton>
+    </Actions>
+</PageHeader>
+
+@if (_users is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_users.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Nenhum usuário cadastrado.</MudAlert>
+}
+else
+{
+    <MudPaper Elevation="2">
+        <MudDataGrid Items="_users" Hover="true" Dense="true">
+            <Columns>
+                <PropertyColumn Property="x => x.Name" Title="Nome" />
+                <PropertyColumn Property="x => x.Email" Title="E-mail" />
+                <TemplateColumn Title="Ações" CellClass="text-end">
+                    <CellTemplate Context="ctx">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
+                                       Href="@($"/users/{ctx.Item.Id}/edit")" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Href="@($"/users/{ctx.Item.Id}/delete")" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+@code {
+    private List<UserListViewModel>? _users;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Usuários", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+        => _users = await Bus.SendAsync(new ListUsersQuery());
+}

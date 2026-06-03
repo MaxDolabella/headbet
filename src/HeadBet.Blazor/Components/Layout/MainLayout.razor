@@ -1,0 +1,48 @@
+@inherits LayoutComponentBase
+@using HeadBet.Blazor.Infrastructure.Theming
+
+<MudThemeProvider Theme="AppTheme.Default" IsDarkMode="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Inherit" Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="@ToggleDrawer" />
+        <MudLink Href="/" Underline="Underline.None" Class="hb-brand ml-2">
+            <img src="/images/logo.png" alt="HeadBet" />
+        </MudLink>
+        <MudSpacer />
+        <UserMenu />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always"
+               Variant="@DrawerVariant.Responsive" Breakpoint="Breakpoint.Md" OpenMiniOnHover="true">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">Sua aposta cabeça</MudText>
+        </MudDrawerHeader>
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent Class="hb-main">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-6 hb-body">
+            @Body
+        </MudContainer>
+        <MudPaper Square="true" Elevation="0" Class="hb-footer px-4 py-4"
+                  Style="background-color: var(--mud-palette-background); color: var(--mud-palette-text-secondary);">
+            <div class="d-flex flex-column align-center" style="gap:.15rem; text-align:center;">
+                <MudText Typo="Typo.caption">
+                    HeadBet Bolões — Sua Aposta Cabeça
+                    &middot; v@(System.Reflection.Assembly.GetExecutingAssembly()!.GetName().Version!.ToString(3))
+                </MudText>
+                <MudText Typo="Typo.caption">&copy; @DateTime.Now.Year Max Dolabella</MudText>
+            </div>
+        </MudPaper>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+}

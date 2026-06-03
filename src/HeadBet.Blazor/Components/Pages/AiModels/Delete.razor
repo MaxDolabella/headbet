@@ -1,0 +1,57 @@
+@page "/ai-models/{Id:guid}/delete"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Apagar modelo — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Apagar modelo de IA" Icon="@Icons.Material.Filled.Delete" Breadcrumbs="@_crumbs" />
+
+    <MudPaper Elevation="3" Class="pa-4 mb-4" Style="border-left:4px solid var(--mud-palette-error);">
+        <MudText Typo="Typo.h6">@_model.DisplayName (@_model.Name)</MudText>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">Esta ação não pode ser desfeita.</MudAlert>
+    </MudPaper>
+
+    <div class="d-flex" style="gap:.5rem;">
+        <MudButton Variant="Variant.Text" Href="/ai-models">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="Confirm" Disabled="_busy">Apagar</MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private AiModelFormViewModel? _model;
+    private bool _busy;
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Modelos de IA", "/ai-models"),
+        new("Apagar", null, disabled: true),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetAiModelQuery(Id));
+        if (_model is null) Nav.NavigateTo("/ai-models");
+    }
+
+    private async Task Confirm()
+    {
+        _busy = true;
+        try
+        {
+            await Bus.SendAsync(new DeleteAiModelCommand { Id = Id });
+            Snackbar.Add("Modelo apagado.", Severity.Success);
+            Nav.NavigateTo("/ai-models");
+        }
+        finally { _busy = false; }
+    }
+}

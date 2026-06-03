@@ -1,0 +1,78 @@
+@page "/pools/{Id:guid}/delete"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Apagar bolão — HeadBet</PageTitle>
+
+@if (_pool is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Apagar bolão" Icon="@Icons.Material.Filled.Delete" Breadcrumbs="@_crumbs" HelpAnchor="criar-bolao" />
+
+    <MudPaper Elevation="2" Class="pa-6 mb-4" Style="border-left: 4px solid var(--mud-palette-error);">
+        <MudText Typo="Typo.h6">@_pool.Name</MudText>
+        @if (!string.IsNullOrWhiteSpace(_pool.Description))
+        {
+            <MudText Class="mud-text-secondary mb-2">@_pool.Description</MudText>
+        }
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-3">
+            <strong>Tem certeza?</strong> Pontuação, premiação e membros serão removidos em cascata. Essa ação não pode ser desfeita.
+        </MudAlert>
+    </MudPaper>
+
+    <div class="d-flex" style="gap:.5rem;">
+        <MudButton Variant="Variant.Text" Href="@($"/pools/{Id}")">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="ConfirmDelete" Disabled="_busy">
+            @(_busy ? "Apagando..." : "Apagar definitivamente")
+        </MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private PoolDetailsViewModel? _pool;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pool = await Bus.SendAsync(new GetPoolDetailsQuery(Id));
+        if (_pool is null || !_pool.IsAdmin)
+        {
+            Snackbar.Add("Bolão não encontrado ou você não é admin.", Severity.Error);
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_pool.Name, $"/pools/{Id}"),
+            new("Apagar", null, disabled: true),
+        ];
+    }
+
+    private async Task ConfirmDelete()
+    {
+        _busy = true;
+        try
+        {
+            var result = await Bus.SendAsync(new DeletePoolCommand { Id = Id });
+            if (!result.IsValid)
+            {
+                Snackbar.Add(result.Notifications?.FirstOrDefault()?.Details ?? "Erro ao apagar bolão.", Severity.Error);
+                return;
+            }
+            Snackbar.Add("Bolão apagado.", Severity.Success);
+            Nav.NavigateTo("/pools");
+        }
+        finally { _busy = false; }
+    }
+}

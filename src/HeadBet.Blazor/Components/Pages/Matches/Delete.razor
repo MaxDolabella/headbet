@@ -1,0 +1,70 @@
+@page "/pools/{PoolId:guid}/matches/{Id:guid}/delete"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Apagar jogo — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="Apagar jogo" Icon="@Icons.Material.Filled.Delete" Breadcrumbs="@_crumbs" HelpAnchor="jogos" />
+
+    <MudPaper Elevation="3" Class="pa-4 mb-4" Style="border-left: 4px solid var(--mud-palette-error);">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@_model.MatchDate.ToString("dd/MM/yyyy HH:mm")</MudText>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+            Tem certeza? Esta ação não pode ser desfeita.
+        </MudAlert>
+    </MudPaper>
+
+    <div class="d-flex" style="gap:.5rem;">
+        <MudButton Variant="Variant.Text" Href="@($"/pools/{PoolId}/matches")">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="Confirm" Disabled="_busy">@(_busy ? "Apagando..." : "Apagar")</MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid Id { get; set; }
+
+    private MatchFormViewModel? _model;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetMatchQuery(Id, PoolId));
+        if (_model is null) { Nav.NavigateTo($"/pools/{PoolId}/matches"); return; }
+        var poolName = await Bus.SendAsync(new GetPoolNameQuery(PoolId)) ?? "Bolão";
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(poolName, $"/pools/{PoolId}"),
+            new("Jogos", $"/pools/{PoolId}/matches"),
+            new("Apagar", null, disabled: true),
+        ];
+    }
+
+    private async Task Confirm()
+    {
+        _busy = true;
+        try
+        {
+            var result = await Bus.SendAsync(new DeleteMatchCommand { Id = Id, PoolId = PoolId });
+            if (!result.IsValid)
+            {
+                Snackbar.Add(result.Notifications?.FirstOrDefault()?.Details ?? "Erro ao apagar jogo.", Severity.Error);
+                return;
+            }
+            Snackbar.Add("Jogo apagado.", Severity.Success);
+            Nav.NavigateTo($"/pools/{PoolId}/matches");
+        }
+        finally { _busy = false; }
+    }
+}

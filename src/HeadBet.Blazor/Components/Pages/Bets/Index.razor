@@ -1,0 +1,133 @@
+@page "/pools/{PoolId:guid}/bets"
+@attribute [Authorize]
+@inject IBus Bus
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<PageTitle>Palpites — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@($"Palpites — {_model.PoolName}")" Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="palpitar">
+        <Actions>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="@($"/pools/{PoolId}")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (_model.Items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            Não há jogos disponíveis para palpite neste momento. Jogos são bloqueados 2 minutos antes do início.
+        </MudAlert>
+    }
+    else
+    {
+        <MudText Class="mud-text-secondary mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+            Palpites podem ser editados até <b style="color:var(--mud-palette-warning);">2 minutos antes</b> do início de cada jogo. Deixe os placares em branco para não palpitar.
+        </MudText>
+
+        <div class="hb-bet-cards mb-4">
+            @foreach (var item in PagedItems)
+            {
+                <MudPaper Elevation="2" Class="pa-3 mb-2">
+                    <div class="d-flex justify-end mb-1">
+                        @if (item.HasBet)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Check">Palpitado</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Default" Size="Size.Small">Sem palpite</MudChip>
+                        }
+                    </div>
+                    <MatchLine Dense="true" ShowHeader="true" MatchDate="item.MatchDate" Round="item.Round" Group="@item.Group"
+                               HomeName="@item.HomeTeamName" HomeAbbreviation="@item.HomeTeamAbbreviation" HomeFlagUrl="@item.HomeTeamFlagUrl"
+                               AwayName="@item.AwayTeamName" AwayAbbreviation="@item.AwayTeamAbbreviation" AwayFlagUrl="@item.AwayTeamFlagUrl"
+                               Editable="true" @bind-HomeScore="item.HomeScore" @bind-AwayScore="item.AwayScore" />
+                </MudPaper>
+            }
+        </div>
+
+        @if (PageCount > 1)
+        {
+            <div class="d-flex justify-center mb-4">
+                <MudPagination Count="PageCount" @bind-Selected="_page" Color="Color.Primary" Rectangular="true" />
+            </div>
+        }
+
+        <div class="hb-bets-footer">
+            <MudText Class="mud-text-secondary">@_model.Items.Count jogo(s) disponíveis para palpite.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="Save" Disabled="_busy" FullWidth="false">@(_busy ? "Salvando..." : "Salvar palpites")</MudButton>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+
+    private const int PAGE_SIZE = 10;
+
+    private PoolBetsViewModel? _model;
+    private bool _busy;
+    private int _page = 1;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    private int PageCount => _model is null ? 0 : (int)Math.Ceiling(_model.Items.Count / (double)PAGE_SIZE);
+
+    private IEnumerable<BetItemViewModel> PagedItems =>
+        _model!.Items.Skip((_page - 1) * PAGE_SIZE).Take(PAGE_SIZE);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new ListPoolBetsQuery(PoolId));
+        if (_model is null)
+        {
+            Nav.NavigateTo("/pools");
+            return;
+        }
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_model.PoolName, $"/pools/{PoolId}"),
+            new("Palpites", null, disabled: true),
+        ];
+    }
+
+    private async Task Save()
+    {
+        _busy = true;
+        try
+        {
+            var cmd = new SaveBetsCommand
+            {
+                PoolId = PoolId,
+                Items = _model!.Items.Select(i => new BetItemInput
+                {
+                    MatchId = i.MatchId,
+                    HomeScore = i.HomeScore,
+                    AwayScore = i.AwayScore,
+                }).ToList(),
+            };
+            var result = await Bus.SendAsync(cmd);
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+            Snackbar.Add("Palpites salvos com sucesso.", Severity.Success);
+            _model = await Bus.SendAsync(new ListPoolBetsQuery(PoolId));
+            if (_page > PageCount)
+                _page = Math.Max(1, PageCount);
+        }
+        finally { _busy = false; }
+    }
+}

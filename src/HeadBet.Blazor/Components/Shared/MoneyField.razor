@@ -1,0 +1,51 @@
+@using System.Globalization
+
+@*
+    Campo monetário estilo "app de banco": o usuário digita os dígitos e as duas últimas
+    casas são sempre os centavos. Ex.: 2 -> 0,02; 25 -> 0,25; 250 -> 2,50; 2500 -> 25,00.
+    O valor é exposto como decimal em reais via @bind-Value.
+*@
+<MudTextField T="string"
+              Value="@_display"
+              ValueChanged="OnInput"
+              Label="@Label"
+              Variant="Variant.Outlined"
+              Immediate="true"
+              InputMode="InputMode.numeric"
+              Adornment="Adornment.Start"
+              AdornmentText="R$"
+              Class="@Class"
+              Disabled="@Disabled" />
+
+@code {
+    private static readonly CultureInfo BR = new("pt-BR");
+    private const int MAX_DIGITS = 15;
+
+    [Parameter] public decimal Value { get; set; }
+    [Parameter] public EventCallback<decimal> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private string _display = "0,00";
+
+    protected override void OnParametersSet() => _display = Value.ToString("N2", BR);
+
+    private async Task OnInput(string? raw)
+    {
+        var digits = new string((raw ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.Length > MAX_DIGITS)
+            digits = digits[^MAX_DIGITS..];
+
+        var cents = digits.Length == 0 ? 0L : long.Parse(digits, CultureInfo.InvariantCulture);
+        var amount = cents / 100m;
+
+        _display = amount.ToString("N2", BR);
+
+        if (amount != Value)
+        {
+            Value = amount;
+            await ValueChanged.InvokeAsync(amount);
+        }
+    }
+}
