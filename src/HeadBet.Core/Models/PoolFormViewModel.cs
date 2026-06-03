@@ -23,6 +23,7 @@ public class PoolFormViewModel : IPrizesCardModel
     private static List<ScoringRuleItemViewModel> BuildDefaultScoring() =>
     [
         new() { Type = ScoreType.ExactScore, Points = 25 },
+        new() { Type = ScoreType.WinnerAndWinnerGoals, Points = 18 },
         new() { Type = ScoreType.WinnerAndDifference, Points = 15 },
         new() { Type = ScoreType.WinnerAndLoserGoals, Points = 12 },
         new() { Type = ScoreType.WinnerOnly, Points = 10 },

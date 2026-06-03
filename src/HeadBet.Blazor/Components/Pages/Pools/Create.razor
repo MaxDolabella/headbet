@@ -160,10 +160,11 @@
     private static string LabelFor(ScoreType t) => t switch
     {
         ScoreType.ExactScore => "Placar exato",
-        ScoreType.WinnerAndDifference => "Vencedor + diferença de gols",
+        ScoreType.WinnerAndWinnerGoals => "Vencedor + gols do vencedor",
+        ScoreType.WinnerAndDifference => "Vencedor + diferença de gols / empate",
         ScoreType.WinnerAndLoserGoals => "Vencedor + gols do perdedor",
         ScoreType.WinnerOnly => "Apenas vencedor",
-        ScoreType.Consolation => "Consolação (empate errado)",
+        ScoreType.Consolation => "Consolação (errou o resultado)",
         ScoreType.NoBet => "Sem palpite",
         _ => t.ToString(),
     };

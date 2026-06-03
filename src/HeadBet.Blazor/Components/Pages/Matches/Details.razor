@@ -86,6 +86,7 @@ else
                                     var color = b.AppliedRule switch
                                     {
                                         ScoreType.ExactScore => Color.Success,
+                                        ScoreType.WinnerAndWinnerGoals => Color.Info,
                                         ScoreType.WinnerAndDifference => Color.Info,
                                         ScoreType.WinnerAndLoserGoals => Color.Info,
                                         ScoreType.WinnerOnly => Color.Warning,

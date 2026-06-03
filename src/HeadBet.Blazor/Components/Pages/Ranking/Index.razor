@@ -106,6 +106,7 @@ else
     private static string ScoreTypeAbbr(ScoreType t) => t switch
     {
         ScoreType.ExactScore => "Exato",
+        ScoreType.WinnerAndWinnerGoals => "V+GV",
         ScoreType.WinnerAndDifference => "V+Dif",
         ScoreType.WinnerAndLoserGoals => "V+GP",
         ScoreType.WinnerOnly => "V",

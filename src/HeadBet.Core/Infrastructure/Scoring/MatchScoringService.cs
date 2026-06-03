@@ -146,6 +146,11 @@ public sealed class MatchScoringService(
             if (realOutcome == 0)
                 return (rules.GetValueOrDefault(ScoreType.WinnerAndDifference), ScoreType.WinnerAndDifference);
 
+            var realWinner = realOutcome > 0 ? realHome : realAway;
+            var betWinner = betOutcome > 0 ? betHome : betAway;
+            if (realWinner == betWinner)
+                return (rules.GetValueOrDefault(ScoreType.WinnerAndWinnerGoals), ScoreType.WinnerAndWinnerGoals);
+
             if ((realHome - realAway) == (betHome - betAway))
                 return (rules.GetValueOrDefault(ScoreType.WinnerAndDifference), ScoreType.WinnerAndDifference);
 

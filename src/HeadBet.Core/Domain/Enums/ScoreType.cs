@@ -7,6 +7,10 @@ public enum ScoreType
     [Display(Name = "Placar exato")]
     ExactScore = 1,
 
+    // Valor 7 (e não 2) para não renumerar valores já persistidos em PoolScoringRule/MatchUserScore.
+    [Display(Name = "Vencedor + gols do vencedor")]
+    WinnerAndWinnerGoals = 7,
+
     [Display(Name = "Vencedor + diferença de gols / Empate com placar diferente")]
     WinnerAndDifference = 2,
 

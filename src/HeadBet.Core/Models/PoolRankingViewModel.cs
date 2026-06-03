@@ -15,6 +15,7 @@ public class PoolRankingViewModel
     public static readonly ScoreType[] BreakdownOrder =
     [
         ScoreType.ExactScore,
+        ScoreType.WinnerAndWinnerGoals,
         ScoreType.WinnerAndDifference,
         ScoreType.WinnerAndLoserGoals,
         ScoreType.WinnerOnly,

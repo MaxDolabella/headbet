@@ -9,6 +9,7 @@ public static class PoolRankingCalculator
     private static readonly ScoreType[] TIEBREAKER_ORDER =
     [
         ScoreType.ExactScore,
+        ScoreType.WinnerAndWinnerGoals,
         ScoreType.WinnerAndDifference,
         ScoreType.WinnerAndLoserGoals,
         ScoreType.WinnerOnly,

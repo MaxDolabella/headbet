@@ -34,7 +34,7 @@ public class CreatePoolCommand : CommandBase<OperationResult<Guid>>, IPoolPrizeF
 // --- Validator ---
 public sealed class CreatePoolCommandValidator : AbstractValidator<CreatePoolCommand>
 {
-    private const int SCORING_RULES_COUNT = 6;
+    private const int SCORING_RULES_COUNT = 7;
 
     public CreatePoolCommandValidator()
     {
@@ -55,7 +55,7 @@ public sealed class CreatePoolCommandValidator : AbstractValidator<CreatePoolCom
 
         RuleFor(x => x.ScoringRules)
             .Must(rules => rules is { Count: SCORING_RULES_COUNT })
-                .WithNotification(GenericMessages.FIELD_FORMAT, "Pontuação deve conter 6 critérios.", nameof(CreatePoolCommand.ScoringRules));
+                .WithNotification(GenericMessages.FIELD_FORMAT, "Pontuação deve conter 7 critérios.", nameof(CreatePoolCommand.ScoringRules));
 
         RuleForEach(x => x.ScoringRules).ChildRules(rule =>
         {

@@ -134,6 +134,7 @@ Cada bolão define seus pontos por `ScoreType` (`PoolScoringRule`). Ao finalizar
 | ScoreType | Quando aplica |
 |---|---|
 | `ExactScore` | Placar exato (mandante e visitante) |
+| `WinnerAndWinnerGoals` | Mesmo vencedor (não-empate) **e** mesmo nº de gols do vencedor |
 | `WinnerAndDifference` | Mesmo resultado **e** (empate, ou mesma diferença de gols) |
 | `WinnerAndLoserGoals` | Mesmo resultado **e** mesmo nº de gols do perdedor |
 | `WinnerOnly` | Acertou só o vencedor |
