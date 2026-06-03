@@ -39,7 +39,7 @@ public sealed class ListMatchesQueryHandler(
             m => m.PoolId == query.PoolId,
             null,
             m => m.MatchDate,
-            SortDirection.Descending,
+            SortDirection.Ascending,
             ct);
 
         if (isMember && matches.Count > 0)
