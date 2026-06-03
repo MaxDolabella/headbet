@@ -100,11 +100,10 @@ html, body {
     flex-shrink: 0;
 }
 
-/* Telas estreitas: troca nome (e "(sigla)") pela SIGLA, mantendo a bandeira. */
+/* Telas estreitas: fica só o NOME (esconde "(sigla)" e bandeira). */
 @media (max-width: 600px) {
-    .hb-team-name,
-    .hb-team-sigla { display: none; }
-    .hb-team-abbr { display: inline; }
+    .hb-team-sigla,
+    .hb-team-flag { display: none; }
 }
 
 /* ===== Componente de jogo (MatchLine) ===== */

@@ -1,7 +1,7 @@
 @* Exibe um time de forma padronizada.
    Mandante (Home): "Nome (sigla) {bandeira}" alinhado à direita.
    Visitante (Away): "{bandeira} (sigla) Nome" alinhado à esquerda.
-   Responsivo: em telas estreitas o nome (e o "(sigla)") somem e fica só a SIGLA, mantendo a bandeira. *@
+   Responsivo: em telas estreitas o "(sigla)" e a bandeira somem e fica só o NOME. *@
 
 <span class="hb-team @(Home ? "home" : "away")" title="@Name">
     @if (Home)
