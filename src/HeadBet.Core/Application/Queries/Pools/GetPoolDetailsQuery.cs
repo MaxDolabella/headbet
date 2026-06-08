@@ -117,7 +117,7 @@ public sealed class GetPoolDetailsQueryHandler(
             scores,
             prizesEntities,
             pool.PrizeMode,
-            pool.EntryFee,
+            collected,
             me?.UserId);
 
         return vm;

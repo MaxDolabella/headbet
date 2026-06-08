@@ -145,7 +145,12 @@ Cada bolão define seus pontos por `ScoreType` (`PoolScoringRule`). Ao finalizar
 acertos de cada `ScoreType` (ExactScore primeiro), depois nome. Distribui prêmios por posição
 conforme o `PrizeMode`: `Percentage` (percentual sobre o arrecadado — `CollectedAmount`, ou a
 estimativa `EntryFee × membros ativos`) ou `Fixed` (valor fixo em R$). Posições empatadas
-dividem o prêmio.
+dividem o prêmio: empate em N posições ocupa os N slots seguintes (ex.: 2 no 1º → posições
+1, 1, 3) e o prêmio do grupo é a **soma dos slots ocupados dividida igualmente** entre os empatados.
+
+> **`CollectedAmount` é um campo manual** — só o admin grava/atualiza. **Nunca** é recalculado
+> automaticamente por entrada/saída de participantes. O ranking percentual usa `CollectedAmount`
+> como base quando preenchido; só cai na estimativa `EntryFee × membros ativos` quando ele é nulo.
 
 ## DateTime — UTC + BRT
 
