@@ -145,7 +145,12 @@ Cada bolão define seus pontos por `ScoreType` (`PoolScoringRule`). Ao finalizar
 acertos de cada `ScoreType` (ExactScore primeiro), depois nome. Distribui prêmios por posição
 conforme o `PrizeMode`: `Percentage` (percentual sobre o arrecadado — `CollectedAmount`, ou a
 estimativa `EntryFee × membros ativos`) ou `Fixed` (valor fixo em R$). Posições empatadas
-dividem o prêmio.
+dividem o prêmio: empate em N posições ocupa os N slots seguintes (ex.: 2 no 1º → posições
+1, 1, 3) e o prêmio do grupo é a **soma dos slots ocupados dividida igualmente** entre os empatados.
+
+> **`CollectedAmount` é um campo manual** — só o admin grava/atualiza. **Nunca** é recalculado
+> automaticamente por entrada/saída de participantes. O ranking percentual usa `CollectedAmount`
+> como base quando preenchido; só cai na estimativa `EntryFee × membros ativos` quando ele é nulo.
 
 ## DateTime — UTC + BRT
 
@@ -194,3 +199,6 @@ Para padrões de uso dos pacotes Headsoft, use o código existente do repositór
   (sobrepõe a convenção PascalCase do .NET).
 - **no-git**: nunca execute comandos git (commit, push, add, stash, etc.). O versionamento é
   responsabilidade do desenvolvedor.
+- **commit-message-on-finish**: ao terminar uma tarefa que mexe em código, finalize a resposta
+  com uma linha curta de commit (Conventional Commits, em pt-BR) num bloco de código para o dev
+  copiar. Só gera o texto — não roda git (respeita a `no-git`).

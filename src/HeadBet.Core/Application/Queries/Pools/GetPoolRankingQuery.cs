@@ -59,12 +59,16 @@ public sealed class GetPoolRankingQueryHandler(
 
         var currentUserId = me?.UserId;
 
+        // Mesma base do valor arrecadado exibido nos detalhes/PrizesCard: usa o
+        // CollectedAmount real do bolão e, na ausência dele, a estimativa por inscrição.
+        var collected = pool.CollectedAmount ?? (pool.EntryFee ?? 0m) * activeMembers.Count;
+
         var items = PoolRankingCalculator.Compute(
             memberTuples,
             scores,
             prizes,
             pool.PrizeMode,
-            pool.EntryFee,
+            collected,
             currentUserId);
 
         return new PoolRankingViewModel

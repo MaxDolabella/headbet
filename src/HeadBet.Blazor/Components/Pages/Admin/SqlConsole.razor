@@ -1,0 +1,255 @@
+@page "/admin/sql"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@using System.Text
+@using System.Text.Encodings.Web
+@using System.Text.Json
+@inject IBus Bus
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+@inject IDialogService Dialog
+@inject IJSRuntime JS
+
+<PageTitle>Console SQL — HeadBet</PageTitle>
+
+<PageHeader Title="Console SQL" Icon="@Icons.Material.Filled.Terminal" Breadcrumbs="@_crumbs" />
+
+<MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3" Dense="true">
+    Acesso direto ao banco. Comandos de escrita (UPDATE/DELETE/INSERT/DDL) rodam numa transação
+    com confirmação; um comando errado ainda pode causar perda de dados. Use com cuidado.
+</MudAlert>
+
+<MudPaper Elevation="2" Class="pa-4 mb-3">
+    <MudTextField @bind-Value="_sql" Label="SQL" Variant="Variant.Outlined"
+                  Lines="8" Immediate="true"
+                  HelperText="SELECT/PRAGMA executam direto. Escrita/DDL pedem confirmação."
+                  Class="hb-sql-input" />
+
+    <div class="d-flex flex-wrap mt-3" style="gap:.5rem;">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow"
+                   OnClick="Execute" Disabled="_busy">
+            @(_busy ? "Executando..." : "Executar")
+        </MudButton>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_busy">Limpar</MudButton>
+    </div>
+</MudPaper>
+
+@if (_result is not null)
+{
+    <MudPaper Elevation="2" Class="pa-4">
+        @if (_result.Error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">@_result.Error</MudAlert>
+        }
+        else if (!_result.IsQuery)
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                <b>@_result.AffectedRows</b> linha(s) afetada(s). (@_result.ElapsedMs ms)
+            </MudAlert>
+        }
+        else
+        {
+            <div class="d-flex flex-wrap justify-space-between align-center mb-3" style="gap:.5rem;">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @_result.Rows.Count linha(s)@(_result.Truncated ? $" (truncado em {_result.Rows.Count})" : "") · @_result.Columns.Count coluna(s) · @_result.ElapsedMs ms
+                </MudText>
+                <div class="d-flex flex-wrap align-center" style="gap:.5rem;">
+                    <MudToggleGroup T="bool" @bind-Value="_showJson" Size="Size.Small" Color="Color.Primary"
+                                    SelectionMode="SelectionMode.SingleSelection" CheckMark="false">
+                        <MudToggleItem Value="false">Tabela</MudToggleItem>
+                        <MudToggleItem Value="true">JSON</MudToggleItem>
+                    </MudToggleGroup>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="DownloadJson" Disabled="_result.Rows.Count == 0">JSON</MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download"
+                               OnClick="DownloadCsv" Disabled="_result.Rows.Count == 0">CSV</MudButton>
+                </div>
+            </div>
+
+            @if (_result.Truncated)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    Resultado limitado a @_result.Rows.Count linhas. Refine com WHERE/LIMIT para ver o restante.
+                </MudAlert>
+            }
+
+            @if (_result.Rows.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Nenhuma linha retornada.</MudAlert>
+            }
+            else if (_showJson)
+            {
+                <pre class="hb-sql-json">@_json</pre>
+            }
+            else
+            {
+                <div style="overflow:auto; max-height:560px;">
+                    <MudTable Items="@_result.Rows" Dense="true" Hover="true" Striped="true" Bordered="true" FixedHeader="true">
+                        <HeaderContent>
+                            @foreach (var col in _result.Columns)
+                            {
+                                <MudTh>@col</MudTh>
+                            }
+                        </HeaderContent>
+                        <RowTemplate>
+                            @for (var i = 0; i < context.Length; i++)
+                            {
+                                var cell = context[i];
+                                <MudTd DataLabel="@(i < _result.Columns.Count ? _result.Columns[i] : null)">
+                                    @if (cell is null)
+                                    {
+                                        <span class="mud-text-secondary"><i>NULL</i></span>
+                                    }
+                                    else
+                                    {
+                                        @FormatCell(cell)
+                                    }
+                                </MudTd>
+                            }
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            }
+        }
+    </MudPaper>
+}
+
+@code {
+    private string _sql = string.Empty;
+    private bool _busy;
+    private bool _showJson;
+    private string? _json;
+    private SqlConsoleResultViewModel? _result;
+
+    private static readonly List<BreadcrumbItem> _crumbs =
+    [
+        new("Home", "/"),
+        new("Console SQL", null, disabled: true),
+    ];
+
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    private async Task Execute()
+    {
+        if (string.IsNullOrWhiteSpace(_sql))
+        {
+            Snackbar.Add("Digite um comando SQL.", Severity.Warning);
+            return;
+        }
+
+        var isRead = SqlStatementClassifier.IsReadOnly(_sql);
+
+        if (!isRead)
+        {
+            var parameters = new DialogParameters<ConfirmDialog>
+            {
+                { x => x.Message, "Este comando MODIFICA o banco e roda numa transação (commit ao final, rollback se falhar). Confirmar execução?" },
+                { x => x.ConfirmText, "Executar" },
+                { x => x.ConfirmColor, Color.Error },
+            };
+            var dialog = await Dialog.ShowAsync<ConfirmDialog>("Confirmar escrita no banco", parameters);
+            var dr = await dialog.Result;
+            if (dr is null || dr.Canceled)
+                return;
+        }
+
+        _busy = true;
+        _result = null;
+        _json = null;
+        try
+        {
+            if (isRead)
+            {
+                _result = await Bus.SendAsync(new RunSqlQuery(_sql));
+                if (_result.Error is not null)
+                    Snackbar.Add(_result.Error, Severity.Error);
+                else
+                    BuildJson();
+            }
+            else
+            {
+                var op = await Bus.SendAsync(new RunSqlCommand { Sql = _sql });
+                if (!op.IsValid)
+                {
+                    foreach (var n in op.Notifications ?? [])
+                        Snackbar.AddNotification(n, Translator);
+                    return;
+                }
+                _result = op.Data;
+                Snackbar.Add($"{_result?.AffectedRows ?? 0} linha(s) afetada(s).", Severity.Success);
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private void ClearAll()
+    {
+        _sql = string.Empty;
+        _result = null;
+        _json = null;
+        _showJson = false;
+    }
+
+    private void BuildJson()
+    {
+        if (_result is null || !_result.IsQuery)
+        {
+            _json = null;
+            return;
+        }
+
+        var list = _result.Rows.Select(row =>
+        {
+            var dict = new Dictionary<string, object?>();
+            for (var i = 0; i < _result.Columns.Count; i++)
+                dict[_result.Columns[i]] = i < row.Length ? row[i] : null;
+            return dict;
+        }).ToList();
+
+        _json = JsonSerializer.Serialize(list, _jsonOptions);
+    }
+
+    private async Task DownloadJson()
+    {
+        if (string.IsNullOrEmpty(_json))
+            return;
+        await JS.InvokeVoidAsync("hbDownloadFile", "consulta.json", _json, "application/json");
+    }
+
+    private async Task DownloadCsv()
+    {
+        if (_result is null || !_result.IsQuery || _result.Rows.Count == 0)
+            return;
+        await JS.InvokeVoidAsync("hbDownloadFile", "consulta.csv", BuildCsv(), "text/csv;charset=utf-8");
+    }
+
+    private string BuildCsv()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(string.Join(",", _result!.Columns.Select(EscapeCsv)));
+        foreach (var row in _result.Rows)
+            sb.AppendLine(string.Join(",", row.Select(c => EscapeCsv(FormatCell(c)))));
+        return sb.ToString();
+    }
+
+    private static string EscapeCsv(object? value)
+    {
+        var s = value?.ToString() ?? string.Empty;
+        if (s.Contains('"') || s.Contains(',') || s.Contains('\n') || s.Contains('\r'))
+            s = $"\"{s.Replace("\"", "\"\"")}\"";
+        return s;
+    }
+
+    private static string FormatCell(object? value) => value switch
+    {
+        null => string.Empty,
+        byte[] bytes => $"(blob {bytes.Length} bytes)",
+        DateTime dt => dt.ToString("yyyy-MM-dd HH:mm:ss"),
+        IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? string.Empty,
+    };
+}

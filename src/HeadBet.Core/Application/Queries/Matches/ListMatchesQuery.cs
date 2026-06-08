@@ -45,14 +45,18 @@ public sealed class ListMatchesQueryHandler(
         if (isMember && matches.Count > 0)
         {
             var matchIds = matches.Select(m => m.Id).ToHashSet();
-            var bettedMatchIds = (await betRepository.ToListAsync(
+            var betsByMatch = (await betRepository.ToListAsync(
                     b => b.UserId == userId && matchIds.Contains(b.MatchId),
                     @readonly: true, ct))
-                .Select(b => b.MatchId)
-                .ToHashSet();
+                .ToDictionary(b => b.MatchId);
 
             foreach (var m in matches)
-                m.HasBet = bettedMatchIds.Contains(m.Id);
+            {
+                if (!betsByMatch.TryGetValue(m.Id, out var bet)) continue;
+                m.HasBet = true;
+                m.BetHomeScore = bet.HomeScore;
+                m.BetAwayScore = bet.AwayScore;
+            }
         }
 
         foreach (var m in matches)

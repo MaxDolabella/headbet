@@ -19,3 +19,16 @@ window.hbScrollToHash = function () {
     };
     tick();
 };
+
+// Baixa um conteúdo de texto como arquivo (usado pelo Console SQL: JSON/CSV).
+window.hbDownloadFile = function (filename, content, mime) {
+    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};

@@ -21,7 +21,7 @@ public static class PoolRankingCalculator
         IReadOnlyList<MatchUserScore> scores,
         IReadOnlyList<PoolPrize> prizes,
         PrizeMode prizeMode,
-        decimal? entryFee,
+        decimal collectedAmount,
         Guid? currentUserId)
     {
         var scoresByUser = scores
@@ -49,7 +49,7 @@ public static class PoolRankingCalculator
 
         items.Sort(Compare);
         AssignPositions(items);
-        DistributePrizes(items, prizes, prizeMode, entryFee, members.Count);
+        DistributePrizes(items, prizes, prizeMode, collectedAmount);
 
         return items;
     }
@@ -90,14 +90,13 @@ public static class PoolRankingCalculator
         List<RankingItemViewModel> items,
         IReadOnlyList<PoolPrize> prizes,
         PrizeMode prizeMode,
-        decimal? entryFee,
-        int activeMemberCount)
+        decimal collectedAmount)
     {
         if (prizes.Count == 0) return;
 
         var prizeBySlot = prizes.ToDictionary(
             p => p.Position,
-            p => CalculateSlotAmount(p, prizeMode, entryFee, activeMemberCount));
+            p => CalculateSlotAmount(p, prizeMode, collectedAmount));
 
         var groups = items
             .GroupBy(x => x.Position)
@@ -131,10 +130,10 @@ public static class PoolRankingCalculator
     }
 
     private static decimal CalculateSlotAmount(
-        PoolPrize prize, PrizeMode prizeMode, decimal? entryFee, int activeMemberCount)
+        PoolPrize prize, PrizeMode prizeMode, decimal collectedAmount)
     {
         return prizeMode == PrizeMode.Fixed
             ? prize.FixedAmount ?? 0m
-            : (entryFee ?? 0m) * activeMemberCount * (prize.Percentage ?? 0m) / 100m;
+            : collectedAmount * (prize.Percentage ?? 0m) / 100m;
     }
 }
