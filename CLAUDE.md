@@ -199,3 +199,6 @@ Para padrões de uso dos pacotes Headsoft, use o código existente do repositór
   (sobrepõe a convenção PascalCase do .NET).
 - **no-git**: nunca execute comandos git (commit, push, add, stash, etc.). O versionamento é
   responsabilidade do desenvolvedor.
+- **commit-message-on-finish**: ao terminar uma tarefa que mexe em código, finalize a resposta
+  com uma linha curta de commit (Conventional Commits, em pt-BR) num bloco de código para o dev
+  copiar. Só gera o texto — não roda git (respeita a `no-git`).
