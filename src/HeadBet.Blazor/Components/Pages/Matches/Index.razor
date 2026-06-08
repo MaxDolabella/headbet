@@ -77,8 +77,10 @@ else
                                 <MatchStatusBadge Status="@ctx.Item.Status" />
                                 @if (ctx.Item.HasBet)
                                 {
-                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
-                                             Icon="@Icons.Material.Filled.Check">Palpitado</MudChip>
+                                    <MudTooltip Text="Seu palpite">
+                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
+                                                 Icon="@Icons.Material.Filled.Check">Palpite: @ctx.Item.BetHomeScore x @ctx.Item.BetAwayScore</MudChip>
+                                    </MudTooltip>
                                 }
                             </span>
                         </CellTemplate>
@@ -124,7 +126,7 @@ else
                             @if (m.HasBet)
                             {
                                 <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
-                                         Icon="@Icons.Material.Filled.Check">Palpitado</MudChip>
+                                         Icon="@Icons.Material.Filled.Check">Palpite: @m.BetHomeScore x @m.BetAwayScore</MudChip>
                             }
                         </div>
 
@@ -133,28 +135,18 @@ else
                                    AwayName="@m.AwayTeamName" AwayAbbreviation="@m.AwayTeamAbbreviation" AwayFlagUrl="@m.AwayTeamFlagUrl"
                                    HomeScore="@m.HomeScore" AwayScore="@m.AwayScore" />
 
-                        <div class="d-flex justify-end mt-2">
-                            <div class="d-inline-flex flex-wrap justify-end" style="gap:.1rem;">
-                                <MudTooltip Text="Ver palpites">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
-                                                   Href="@($"/pools/{PoolId}/matches/{m.Id}")" />
-                                </MudTooltip>
-                                @if (_isAdmin)
-                                {
-                                    <MudTooltip Text="Editar placar">
-                                        <MudIconButton Icon="@Icons.Material.Filled.SportsSoccer" Size="Size.Small" Color="Color.Warning"
-                                                       Href="@($"/pools/{PoolId}/matches/{m.Id}/edit-score")" />
-                                    </MudTooltip>
-                                    <MudTooltip Text="Editar jogo">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                                       Href="@($"/pools/{PoolId}/matches/{m.Id}/edit")" />
-                                    </MudTooltip>
-                                    <MudTooltip Text="Excluir jogo">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                                       Href="@($"/pools/{PoolId}/matches/{m.Id}/delete")" />
-                                    </MudTooltip>
-                                }
-                            </div>
+                        <div class="d-flex flex-wrap mt-2" style="gap:.4rem;">
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility"
+                                       Href="@($"/pools/{PoolId}/matches/{m.Id}")">Ver palpites</MudButton>
+                            @if (_isAdmin)
+                            {
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
+                                           Href="@($"/pools/{PoolId}/matches/{m.Id}/edit-score")">Editar placar</MudButton>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit"
+                                           Href="@($"/pools/{PoolId}/matches/{m.Id}/edit")">Editar jogo</MudButton>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                                           Href="@($"/pools/{PoolId}/matches/{m.Id}/delete")">Excluir</MudButton>
+                            }
                         </div>
                     </MudPaper>
                 }

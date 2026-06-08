@@ -19,4 +19,6 @@ public class MatchListViewModel
     public string? Group { get; set; }
     public byte Round { get; set; }
     public bool HasBet { get; set; }
+    public int? BetHomeScore { get; set; }
+    public int? BetAwayScore { get; set; }
 }
