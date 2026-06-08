@@ -246,3 +246,24 @@ html, body {
         align-items: stretch;
     }
 }
+
+/* ===== Chat (ChatPanel) ===== */
+.hb-chat-msg {
+    padding: 0.15rem 0;
+}
+/* Cabeçalho (autor + hora) destacado da mensagem */
+.hb-chat-time {
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+.hb-chat-time::before {
+    content: "•";
+    margin-right: 0.4rem;
+    opacity: 0.5;
+}
+/* Mensagem recuada e com leve barra à esquerda, separando do cabeçalho */
+.hb-chat-text {
+    padding-left: 0.6rem;
+    border-left: 2px solid var(--mud-palette-lines-default);
+    margin-left: 0.1rem;
+}

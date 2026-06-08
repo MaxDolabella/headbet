@@ -71,6 +71,9 @@ public static class DependencyInjection
         // Notification translation (translate keys → pt-BR titles)
         services.AddSingleton<INotificationTranslator, NotificationTranslator>();
 
+        // Chat em tempo real (pub/sub em memória; um processo, um circuito por usuário)
+        services.AddSingleton<IChatBroadcaster, Chat.ChatBroadcaster>();
+
         // Football Data API
         services.AddHttpClient<IFootballDataClient, FootballDataClient>(client =>
         {

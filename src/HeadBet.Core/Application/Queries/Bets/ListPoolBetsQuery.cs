@@ -25,18 +25,21 @@ public sealed class ListPoolBetsQueryHandler(
     {
         var userId = userContext.UserId;
 
-        var isMember = await memberRepository.AnyAsync(
+        var me = await memberRepository.GetAsync(
             m => m.PoolId == query.PoolId
                  && m.UserId == userId
                  && m.Status == PoolMemberStatus.Active,
+            @readonly: true,
             ct);
 
-        if (!isMember)
+        if (me is null)
             return null;
 
         var pool = await poolRepository.GetAsync(p => p.Id == query.PoolId, @readonly: true, ct);
         if (pool is null)
             return null;
+
+        var isAdmin = me.Role == PoolMemberRole.Admin || userContext.IsAdmin;
 
         var cutoff = DateTime.UtcNow.AddMinutes(BET_CUTOFF_MINUTES);
 
@@ -48,7 +51,7 @@ public sealed class ListPoolBetsQueryHandler(
             ct);
 
         if (items.Count == 0)
-            return new PoolBetsViewModel { PoolId = pool.Id, PoolName = pool.Name };
+            return new PoolBetsViewModel { PoolId = pool.Id, PoolName = pool.Name, IsAdmin = isAdmin };
 
         var matchIds = items.Select(i => i.MatchId).ToList();
 
@@ -74,6 +77,7 @@ public sealed class ListPoolBetsQueryHandler(
         {
             PoolId = pool.Id,
             PoolName = pool.Name,
+            IsAdmin = isAdmin,
             Items = items,
         };
     }
