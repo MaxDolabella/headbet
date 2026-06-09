@@ -34,6 +34,7 @@
             <li><MudLink Href="/guide#ranking">Acompanhar o ranking</MudLink></li>
             <li><MudLink Href="/guide#participantes">Gerenciar participantes (admin)</MudLink></li>
             <li><MudLink Href="/guide#usuarios">Gerenciar usuários (admin do sistema)</MudLink></li>
+            <li><MudLink Href="/guide#chat">Conversar no chat (mural e comentários)</MudLink></li>
         </ol>
     </MudCardContent>
 </MudCard>
@@ -200,6 +201,19 @@
         <li><b>Editar</b> — alterar dados e papel (perfil) de um usuário.</li>
         <li><b>Apagar</b> — remover uma conta do sistema.</li>
     </ul>
+</section>
+
+<section id="chat" class="mb-6">
+    <MudText Typo="Typo.h5" Class="mb-3"><MudIcon Icon="@Icons.Material.Filled.Forum" /> 15. Conversar no chat</MudText>
+    <p>Membros de um bolão podem trocar mensagens curtas em tempo real — elas aparecem para todos sem precisar atualizar a página. Há dois tipos de conversa:</p>
+    <ul>
+        <li><b>Mural do bolão</b> — papo geral, na tela de <b>detalhes do bolão</b>. É um painel <b>Mural</b> que você abre e fecha quando quiser.</li>
+        <li><b>Comentários do jogo</b> — ligados a um jogo específico. Aparecem em dois lugares que compartilham as mesmas mensagens: no painel <b>Comentários</b> de cada jogo na tela de <b>Palpites</b>, e na tela de <b>detalhes do jogo</b>.</li>
+    </ul>
+    <p>Só <b>membros ativos</b> do bolão veem e escrevem. Para enviar, digite e tecle <b>Enter</b> (ou use o botão de enviar).</p>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Administradores (do bolão ou do sistema) podem <b>apagar</b> qualquer mensagem pelo ícone de lixeira ao lado dela. Não há edição depois de enviada.
+    </MudAlert>
 </section>
 
 @code {

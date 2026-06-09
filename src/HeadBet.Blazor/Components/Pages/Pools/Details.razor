@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IJSRuntime Js
+@inject IUserContext UserContext
 
 <PageTitle>@(_pool?.Name ?? "Bolão") — HeadBet</PageTitle>
 
@@ -190,6 +191,19 @@ else
         }
     </MudGrid>
 
+    @if (_pool.IsMember)
+    {
+        <MudExpansionPanels Class="mt-6">
+            <MudExpansionPanel Icon="@Icons.Material.Filled.Forum" Text="Mural" @bind-Expanded="_muralOpen">
+                @if (_muralOpen)
+                {
+                    <ChatPanel PoolId="_pool.Id" Scope="ChatScope.PoolGeneral"
+                               CanPost="true" CanModerate="@(_pool.IsAdmin || UserContext.IsAdmin)" />
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+
     <MudExpansionPanels Class="mt-6">
         <MudExpansionPanel Text="@($"Jogos — {_pool.UpcomingMatches.Count} próximos · {_pool.FinishedMatches.Count} finalizados")"
                            Icon="@Icons.Material.Filled.SportsSoccer">
@@ -246,6 +260,7 @@ else
     private PoolDetailsViewModel? _pool;
     private string _inviteUrl = string.Empty;
     private List<BreadcrumbItem> _crumbs = new();
+    private bool _muralOpen = true;
 
     protected override async Task OnInitializedAsync()
     {

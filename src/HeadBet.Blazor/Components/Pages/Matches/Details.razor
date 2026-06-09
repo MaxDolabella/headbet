@@ -101,6 +101,16 @@ else
             </MudSimpleTable>
         </MudCardContent>
     </MudCard>
+
+    <MudCard Elevation="2" Class="mt-4">
+        <MudCardHeader><CardHeaderContent>
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Small" /> Comentários</MudText>
+        </CardHeaderContent></MudCardHeader>
+        <MudCardContent>
+            <ChatPanel PoolId="PoolId" Scope="ChatScope.Match" MatchId="Id"
+                       CanPost="true" CanModerate="_match.IsAdmin" />
+        </MudCardContent>
+    </MudCard>
 }
 
 @code {

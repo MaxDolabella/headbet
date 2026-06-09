@@ -22,6 +22,8 @@ placares leva.
   diferença de gols, só o vencedor, etc.
 - **Ranking e prêmios** — classificação com desempate por tipo de acerto e distribuição de
   prêmios por posição (percentual sobre o arrecadado ou valor fixo).
+- **Chat em tempo real** — mural geral do bolão e comentários por jogo (na tela de palpite e nos
+  detalhes da partida), atualizados ao vivo. Só membros postam; admins moderam.
 - **Contas e segurança** — cadastro, login por cookie, recuperação de senha por e-mail, e papéis
   de usuário/administrador.
 

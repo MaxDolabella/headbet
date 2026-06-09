@@ -50,6 +50,18 @@ else
                                HomeName="@item.HomeTeamName" HomeAbbreviation="@item.HomeTeamAbbreviation" HomeFlagUrl="@item.HomeTeamFlagUrl"
                                AwayName="@item.AwayTeamName" AwayAbbreviation="@item.AwayTeamAbbreviation" AwayFlagUrl="@item.AwayTeamFlagUrl"
                                Editable="true" @bind-HomeScore="item.HomeScore" @bind-AwayScore="item.AwayScore" />
+
+                    <MudExpansionPanels Elevation="0" Class="mt-2">
+                        <MudExpansionPanel Text="Comentários" Icon="@Icons.Material.Filled.ChatBubbleOutline"
+                                           Expanded="_openChats.Contains(item.MatchId)"
+                                           ExpandedChanged="@(v => ToggleChat(item.MatchId, v))">
+                            @if (_openChats.Contains(item.MatchId))
+                            {
+                                <ChatPanel PoolId="PoolId" Scope="ChatScope.Match" MatchId="item.MatchId"
+                                           CanPost="true" CanModerate="_model.IsAdmin" MaxHeightPx="240" />
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
                 </MudPaper>
             }
         </div>
@@ -78,6 +90,15 @@ else
     private bool _busy;
     private int _page = 1;
     private List<BreadcrumbItem> _crumbs = new();
+    private readonly HashSet<Guid> _openChats = [];
+
+    private void ToggleChat(Guid matchId, bool expanded)
+    {
+        if (expanded)
+            _openChats.Add(matchId);
+        else
+            _openChats.Remove(matchId);
+    }
 
     private int PageCount => _model is null ? 0 : (int)Math.Ceiling(_model.Items.Count / (double)PAGE_SIZE);
 
