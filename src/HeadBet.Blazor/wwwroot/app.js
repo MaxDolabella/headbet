@@ -20,6 +20,16 @@ window.hbScrollToHash = function () {
     tick();
 };
 
+// Rola o calendário de jogos horizontalmente até a coluna do dia indicado.
+// O .hb-calendar tem position:relative, então offsetLeft já é relativo a ele.
+window.hbCalendarScrollToDay = function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const container = el.closest('.hb-calendar');
+    if (!container) return;
+    container.scrollTo({ left: el.offsetLeft, behavior: 'smooth' });
+};
+
 // Baixa um conteúdo de texto como arquivo (usado pelo Console SQL: JSON/CSV).
 window.hbDownloadFile = function (filename, content, mime) {
     const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });

@@ -1,0 +1,71 @@
+@* Calendário de jogos: faixa horizontal de dias (só dias com jogo viram coluna),
+   com rolagem horizontal — mesma visualização em desktop e mobile.
+   - Cada card é clicável e leva à página de palpites do jogo.
+   - Ao renderizar, rola até a coluna de hoje (ou do próximo dia com jogo). *@
+
+@using HeadBet.Core.Extensions
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<div class="hb-calendar">
+    @foreach (var day in _days)
+    {
+        <div class="hb-calendar-day @(day.Date == _today ? "hb-calendar-today" : null)" id="@DayElementId(day.Date)">
+            <div class="hb-calendar-day-header">
+                <span class="hb-calendar-dow">@day.Date.ToString("ddd").TrimEnd('.').ToUpperInvariant()</span>
+                <span>@day.Date.ToString("dd/MM")</span>
+            </div>
+
+            @foreach (var m in day.Matches)
+            {
+                @* Mesmo card da lista mobile (Matches/Index), sem os botões: o clique navega. *@
+                <MudPaper Elevation="2" Class="pa-3 mb-2 hb-match-card-link"
+                          @onclick="@(() => Nav.NavigateTo($"/pools/{PoolId}/matches/{m.Id}"))">
+                    <div class="d-flex justify-end align-center mb-1" style="gap:.3rem;">
+                        <MatchStatusBadge Status="@m.Status" />
+                        @if (m.HasBet)
+                        {
+                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
+                                     Icon="@Icons.Material.Filled.Check">Palpite: @m.BetHomeScore x @m.BetAwayScore</MudChip>
+                        }
+                    </div>
+
+                    <MatchLine Dense="true" ShowHeader="true" MatchDate="m.MatchDate" Round="@((int)m.Round)" Group="@m.Group"
+                               HomeName="@m.HomeTeamName" HomeAbbreviation="@m.HomeTeamAbbreviation" HomeFlagUrl="@m.HomeTeamFlagUrl"
+                               AwayName="@m.AwayTeamName" AwayAbbreviation="@m.AwayTeamAbbreviation" AwayFlagUrl="@m.AwayTeamFlagUrl"
+                               HomeScore="@m.HomeScore" AwayScore="@m.AwayScore" />
+                </MudPaper>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid PoolId { get; set; }
+    [Parameter, EditorRequired] public List<MatchListViewModel> Matches { get; set; } = [];
+
+    private List<(DateTime Date, List<MatchListViewModel> Matches)> _days = [];
+    private DateTime _today;
+
+    protected override void OnParametersSet()
+    {
+        _today = DateTime.UtcNow.ToBrt().Date;
+        _days = Matches
+            .OrderBy(m => m.MatchDate)
+            .GroupBy(m => m.MatchDate.Date)
+            .Select(g => (g.Key, g.ToList()))
+            .ToList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _days.Count == 0)
+            return;
+
+        // Hoje (ou o próximo dia com jogo); torneio já encerrado cai no último dia.
+        var target = _days.FirstOrDefault(d => d.Date >= _today, _days[^1]);
+        await Js.InvokeVoidAsync("hbCalendarScrollToDay", DayElementId(target.Date));
+    }
+
+    private static string DayElementId(DateTime date) => $"hb-cal-{date:yyyyMMdd}";
+}
