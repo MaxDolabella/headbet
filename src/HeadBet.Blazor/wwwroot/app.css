@@ -201,6 +201,45 @@ html, body {
     margin-bottom: 0.5rem;
 }
 
+/* ===== Calendário de jogos (MatchCalendar) ===== */
+/* position:relative faz o offsetLeft das colunas ser relativo ao container
+   (usado pelo hbCalendarScrollToDay no app.js). */
+.hb-calendar {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    scroll-snap-type: x proximity;
+}
+.hb-calendar-day {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+}
+.hb-calendar-day-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid var(--mud-palette-divider);
+    font-weight: 600;
+}
+.hb-calendar-dow {
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--mud-palette-text-secondary);
+}
+.hb-calendar-today .hb-calendar-day-header {
+    border-bottom-color: var(--mud-palette-primary);
+}
+.hb-calendar-today .hb-calendar-dow,
+.hb-calendar-today .hb-calendar-day-header span {
+    color: var(--mud-palette-primary);
+}
+
 /* Login / Register page */
 .hb-auth-card {
     max-width: 420px;

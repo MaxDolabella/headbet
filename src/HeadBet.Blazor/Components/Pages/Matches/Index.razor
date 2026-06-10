@@ -30,15 +30,31 @@ else
     }
     else
     {
-        <MudSelect T="MatchStatus?" @bind-Value="_statusFilter" Label="Status" Clearable="true"
-                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
-                   Style="max-width:220px" Class="mb-3">
-            <MudSelectItem T="MatchStatus?" Value="MatchStatus.Scheduled">Agendado</MudSelectItem>
-            <MudSelectItem T="MatchStatus?" Value="MatchStatus.InProgress">Em andamento</MudSelectItem>
-            <MudSelectItem T="MatchStatus?" Value="MatchStatus.Finished">Finalizado</MudSelectItem>
-            <MudSelectItem T="MatchStatus?" Value="MatchStatus.Cancelled">Cancelado</MudSelectItem>
-        </MudSelect>
+        <div class="d-flex align-center justify-space-between flex-wrap mb-3" style="gap:.75rem;">
+            <MudSelect T="MatchStatus?" @bind-Value="_statusFilter" Label="Status" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                       Style="max-width:220px">
+                <MudSelectItem T="MatchStatus?" Value="MatchStatus.Scheduled">Agendado</MudSelectItem>
+                <MudSelectItem T="MatchStatus?" Value="MatchStatus.InProgress">Em andamento</MudSelectItem>
+                <MudSelectItem T="MatchStatus?" Value="MatchStatus.Finished">Finalizado</MudSelectItem>
+                <MudSelectItem T="MatchStatus?" Value="MatchStatus.Cancelled">Cancelado</MudSelectItem>
+            </MudSelect>
 
+            <MudToggleGroup T="MatchesView" @bind-Value="_view" SelectionMode="SelectionMode.SingleSelection"
+                            Color="Color.Primary" Size="Size.Small">
+                <MudToggleItem Value="MatchesView.List" Text="Lista"
+                               UnselectedIcon="@Icons.Material.Filled.ViewList" SelectedIcon="@Icons.Material.Filled.ViewList" />
+                <MudToggleItem Value="MatchesView.Calendar" Text="Calendário"
+                               UnselectedIcon="@Icons.Material.Filled.CalendarMonth" SelectedIcon="@Icons.Material.Filled.CalendarMonth" />
+            </MudToggleGroup>
+        </div>
+
+        @if (_view == MatchesView.Calendar)
+        {
+            <MatchCalendar PoolId="PoolId" Matches="FilteredMatches" />
+        }
+        else
+        {
         @* Desktop: DataGrid *@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
         <MudPaper Elevation="2">
@@ -152,6 +168,7 @@ else
                 }
             </div>
         </MudHidden>
+        }
 
         <MudText Class="mud-text-secondary mt-2">
             @if (_statusFilter is null)
@@ -173,6 +190,9 @@ else
     private List<MatchListViewModel> _matches = new();
     private List<BreadcrumbItem> _crumbs = new();
     private MatchStatus? _statusFilter;
+    private MatchesView _view = MatchesView.List;
+
+    private enum MatchesView { List, Calendar }
 
     private List<MatchListViewModel> FilteredMatches
         => _statusFilter is null ? _matches : _matches.Where(m => m.Status == _statusFilter).ToList();
