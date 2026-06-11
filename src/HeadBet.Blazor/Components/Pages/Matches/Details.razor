@@ -15,6 +15,11 @@ else
     <PageHeader Title="@($"Palpites {_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}")"
                 Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
         <Actions>
+            @if (!string.IsNullOrWhiteSpace(_match.BroadcastUrl))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.LiveTv"
+                           Href="@_match.BroadcastUrl" Target="_blank">Transmissão</MudButton>
+            }
             @if (_match.IsAdmin)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"

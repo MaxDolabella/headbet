@@ -14,6 +14,7 @@ public class Match : Entity<Guid>
     public MatchStatus Status { get; set; }
     public string? Group { get; set; }
     public byte? Round { get; set; }
+    public string? BroadcastUrl { get; set; }
 
     public Pool Pool { get; set; } = null!;
     public Team HomeTeam { get; set; } = null!;

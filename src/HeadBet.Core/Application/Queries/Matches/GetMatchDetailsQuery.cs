@@ -114,6 +114,7 @@ public sealed class GetMatchDetailsQueryHandler(
             Status = match.Status,
             Group = match.Group,
             Round = match.Round,
+            BroadcastUrl = match.BroadcastUrl,
 
             IsBetPeriodOpen = isBetPeriodOpen,
             CanEditMyBet = me is not null && isBetPeriodOpen,

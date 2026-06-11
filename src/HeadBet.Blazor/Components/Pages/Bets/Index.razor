@@ -36,7 +36,14 @@ else
             @foreach (var item in PagedItems)
             {
                 <MudPaper Elevation="2" Class="pa-3 mb-2">
-                    <div class="d-flex justify-end mb-1">
+                    <div class="d-flex justify-end align-center mb-1" style="gap:.25rem;">
+                        @if (!string.IsNullOrWhiteSpace(item.BroadcastUrl))
+                        {
+                            <MudTooltip Text="Ir para a transmissão">
+                                <MudIconButton Icon="@Icons.Material.Filled.LiveTv" Color="Color.Error" Size="Size.Small"
+                                               Href="@item.BroadcastUrl" Target="_blank" />
+                            </MudTooltip>
+                        }
                         @if (item.HasBet)
                         {
                             <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Check">Palpitado</MudChip>

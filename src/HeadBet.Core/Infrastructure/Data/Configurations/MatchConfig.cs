@@ -20,6 +20,7 @@ internal sealed class MatchConfig : IEntityTypeConfiguration<Match>
         builder.Property(x => x.Status).IsRequired();
         builder.Property(x => x.Group).HasMaxLength(50).IsRequired(false);
         builder.Property(x => x.Round).IsRequired(false);
+        builder.Property(x => x.BroadcastUrl).HasMaxLength(500).IsRequired(false);
 
         builder.HasOne(x => x.Pool).WithMany();
         builder.HasOne(x => x.HomeTeam).WithMany();

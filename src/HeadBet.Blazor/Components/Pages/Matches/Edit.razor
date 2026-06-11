@@ -27,6 +27,8 @@ else
             <MudTimePicker @bind-Time="_time" Label="Hora" Variant="Variant.Outlined" />
             <MudTextField @bind-Value="_model.Group" Label="Grupo" Variant="Variant.Outlined" />
             <MudNumericField T="byte" @bind-Value="_model.Round" Min="(byte)0" Max="(byte)255" Label="Rodada" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_model.BroadcastUrl" Label="Link da transmissão (YouTube)" Variant="Variant.Outlined"
+                          Placeholder="https://www.youtube.com/watch?v=..." HelperText="Opcional. Exibe um botão para assistir à transmissão no card do jogo." />
             <MudSelect T="MatchStatus" @bind-Value="_model.Status" Label="Status" Variant="Variant.Outlined">
                 @foreach (var s in Enum.GetValues<MatchStatus>()) { <MudSelectItem Value="@s">@s</MudSelectItem> }
             </MudSelect>
@@ -83,6 +85,7 @@ else
                 Status = _model.Status,
                 Group = _model.Group,
                 Round = _model.Round,
+                BroadcastUrl = _model.BroadcastUrl,
             };
             var result = await Bus.SendAsync(cmd);
             if (!result.IsValid)

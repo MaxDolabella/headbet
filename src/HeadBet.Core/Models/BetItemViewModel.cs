@@ -12,6 +12,7 @@ public class BetItemViewModel
     public DateTime MatchDate { get; set; }
     public string? Group { get; set; }
     public byte? Round { get; set; }
+    public string? BroadcastUrl { get; set; }
     public int? HomeScore { get; set; }
     public int? AwayScore { get; set; }
 

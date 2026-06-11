@@ -28,6 +28,9 @@ public class MatchFormViewModel
     [Range(0, 255, ErrorMessage = "Rodada deve ser entre 0 e 255.")]
     public byte Round { get; set; }
 
+    [StringLength(500, ErrorMessage = "Link da transmissão deve ter no máximo 500 caracteres.")]
+    public string? BroadcastUrl { get; set; }
+
     /// <summary>Lista de times do pool para popular os dropdowns.</summary>
     public List<TeamListViewModel> AvailableTeams { get; set; } = [];
 }

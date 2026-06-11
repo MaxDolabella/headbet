@@ -23,6 +23,7 @@ public class MatchDetailsViewModel
     public MatchStatus Status { get; set; }
     public string? Group { get; set; }
     public byte? Round { get; set; }
+    public string? BroadcastUrl { get; set; }
 
     public bool IsBetPeriodOpen { get; set; }
     public bool CanEditMyBet { get; set; }

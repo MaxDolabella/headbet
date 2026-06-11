@@ -25,6 +25,7 @@ public class UpdateMatchCommand : CommandBase<OperationResult>
     public MatchStatus Status { get; set; }
     public string? Group { get; set; }
     public byte Round { get; set; }
+    public string? BroadcastUrl { get; set; }
 }
 
 // --- Validator ---
@@ -62,6 +63,13 @@ public sealed class UpdateMatchCommandValidator : AbstractValidator<UpdateMatchC
         RuleFor(x => x.Group)
             .MaximumLength(50)
                 .WithNotification(GenericMessages.FIELD_LENGTH, "Grupo deve ter no máximo 50 caracteres.", nameof(UpdateMatchCommand.Group));
+
+        RuleFor(x => x.BroadcastUrl)
+            .MaximumLength(500)
+                .WithNotification(GenericMessages.FIELD_LENGTH, "Link da transmissão deve ter no máximo 500 caracteres.", nameof(UpdateMatchCommand.BroadcastUrl))
+            .Must(url => YouTubeUrl.TryGetVideoId(url, out _))
+                .WithNotification(GenericMessages.FIELD_INVALID, "Link da transmissão deve ser um link de vídeo válido do YouTube.", nameof(UpdateMatchCommand.BroadcastUrl))
+            .When(x => !string.IsNullOrWhiteSpace(x.BroadcastUrl));
     }
 }
 
