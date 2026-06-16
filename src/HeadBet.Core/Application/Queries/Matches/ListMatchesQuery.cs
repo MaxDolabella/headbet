@@ -16,6 +16,7 @@ public sealed class ListMatchesQueryHandler(
     IPoolRepository poolRepository,
     IMatchRepository matchRepository,
     IBetRepository betRepository,
+    IMatchUserScoreRepository scoreRepository,
     IPoolMemberRepository memberRepository,
     IUserContext userContext) : QueryHandlerBase<ListMatchesQuery, List<MatchListViewModel>>
 {
@@ -49,13 +50,24 @@ public sealed class ListMatchesQueryHandler(
                     b => b.UserId == userId && matchIds.Contains(b.MatchId),
                     @readonly: true, ct))
                 .ToDictionary(b => b.MatchId);
+            var scoresByMatch = (await scoreRepository.ToListAsync(
+                    s => s.UserId == userId && matchIds.Contains(s.MatchId),
+                    @readonly: true, ct))
+                .ToDictionary(s => s.MatchId);
 
             foreach (var m in matches)
             {
-                if (!betsByMatch.TryGetValue(m.Id, out var bet)) continue;
-                m.HasBet = true;
-                m.BetHomeScore = bet.HomeScore;
-                m.BetAwayScore = bet.AwayScore;
+                if (betsByMatch.TryGetValue(m.Id, out var bet))
+                {
+                    m.HasBet = true;
+                    m.BetHomeScore = bet.HomeScore;
+                    m.BetAwayScore = bet.AwayScore;
+                }
+                if (scoresByMatch.TryGetValue(m.Id, out var score))
+                {
+                    m.Points = score.Points;
+                    m.AppliedRule = score.AppliedRule;
+                }
             }
         }
 

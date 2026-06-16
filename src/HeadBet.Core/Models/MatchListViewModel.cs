@@ -21,4 +21,8 @@ public class MatchListViewModel
     public bool HasBet { get; set; }
     public int? BetHomeScore { get; set; }
     public int? BetAwayScore { get; set; }
+
+    // Pontos do usuário logado nesta partida (preenchido só quando há MatchUserScore).
+    public int Points { get; set; }
+    public ScoreType? AppliedRule { get; set; }
 }
