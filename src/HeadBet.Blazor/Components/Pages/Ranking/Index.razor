@@ -82,18 +82,25 @@ else
                 </MudText>
             </div>
         </MudPaper>
+
+        @if (_dashboard is { HasData: true })
+        {
+            <RankingDashboard Model="_dashboard" />
+        }
     }
 }
 
 @code {
     [Parameter] public Guid PoolId { get; set; }
     private PoolRankingViewModel? _model;
+    private RankingDashboardViewModel? _dashboard;
     private List<BreadcrumbItem> _crumbs = new();
 
     protected override async Task OnInitializedAsync()
     {
         _model = await Bus.SendAsync(new GetPoolRankingQuery(PoolId));
         if (_model is null) { Nav.NavigateTo("/pools"); return; }
+        _dashboard = await Bus.SendAsync(new GetPoolRankingDashboardQuery(PoolId));
         _crumbs =
         [
             new("Home", "/"),
