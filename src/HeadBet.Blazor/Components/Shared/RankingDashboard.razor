@@ -1,0 +1,259 @@
+@* Dashboard do ranking: progressão de pontos e evolução de posição (gráficos de
+   linha com legenda-chip compartilhada), distribuição de acertos por tipo e
+   aproveitamento. Renderizado abaixo da tabela de ranking. *@
+@using HeadBet.Core.Domain.Enums
+
+<div class="hb-dashboard">
+    <style>
+        .hb-dash-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px;
+                        font:12px Roboto,Arial,sans-serif; cursor:pointer; user-select:none; }
+    </style>
+
+    <MudText Typo="Typo.h5" Class="mt-8 mb-3"><MudIcon Icon="@Icons.Material.Filled.Insights" /> Dashboard</MudText>
+
+    @* ---- Evolução (dois gráficos de linha, chips compartilhados) ---- *@
+    <MudCard Elevation="2" Class="mb-4">
+        <MudCardHeader><CardHeaderContent>
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Small" /> Evolução</MudText>
+        </CardHeaderContent></MudCardHeader>
+        <MudCardContent>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                @foreach (var p in Model.Participants)
+                {
+                    var on = _visible.Contains(p.UserId);
+                    <span class="hb-dash-chip" style="@ChipStyle(p, on)" @onclick="@(() => Toggle(p.UserId))">
+                        ●&nbsp;@p.UserName@(p.IsCurrentUser ? " (você)" : "")
+                    </span>
+                }
+            </div>
+
+            <div class="d-flex align-center flex-wrap gap-2 mb-2">
+                <span class="mud-text-secondary" style="font-size:12px;width:54px">Janela:</span>
+                @foreach (var w in _windowOptions)
+                {
+                    <MudButton Size="Size.Small" DropShadow="false"
+                               Variant="@(_window == w ? Variant.Filled : Variant.Outlined)"
+                               Color="Color.Primary" OnClick="@(() => SetWindow(w))">@WindowLabel(w)</MudButton>
+                }
+            </div>
+            @if (_visibleList.Count == 0)
+            {
+                <MudText Class="mud-text-secondary py-4 text-center">Selecione ao menos um participante.</MudText>
+            }
+            else
+            {
+                <MudChart ChartType="ChartType.Line" ChartSeries="_progressSeries" ChartLabels="_xLabels"
+                          ChartOptions="_lineOptions" Width="100%" Height="320px" />
+                <MudText Typo="Typo.subtitle2" Align="Align.Center" Class="mb-1">Pontos acumulados</MudText>
+
+                <MudChart ChartType="ChartType.Line" ChartSeries="_positionSeries" ChartLabels="_xLabels"
+                          ChartOptions="_positionOptions" Width="100%" Height="320px" Class="mt-6" />
+                <MudText Typo="Typo.subtitle2" Align="Align.Center" Class="mb-1">
+                    Posição no ranking <span class="mud-text-secondary" style="font-weight:400">(topo = 1º)</span>
+                </MudText>
+            }
+        </MudCardContent>
+    </MudCard>
+
+    @* ---- Distribuição de acertos por tipo ---- *@
+    <MudCard Elevation="2" Class="mb-4">
+        <MudCardHeader><CardHeaderContent>
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Small" /> Acertos por tipo</MudText>
+        </CardHeaderContent></MudCardHeader>
+        <MudCardContent>
+            <MudChart ChartType="ChartType.StackedBar" ChartSeries="_distributionSeries" ChartLabels="_participantLabels"
+                      ChartOptions="_distributionOptions" Width="100%" Height="280px" />
+        </MudCardContent>
+    </MudCard>
+
+    @* ---- Aproveitamento ---- *@
+    <MudCard Elevation="2" Class="mb-4">
+        <MudCardHeader><CardHeaderContent>
+            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Small" /> Aproveitamento</MudText>
+        </CardHeaderContent></MudCardHeader>
+        <MudCardContent>
+            @foreach (var p in Model.Participants)
+            {
+                <div class="d-flex align-center gap-3 mb-2">
+                    <span style="width:96px;@(p.IsCurrentUser ? "font-weight:600;" : "")" class="text-truncate">@p.UserName</span>
+                    <MudProgressLinear Value="p.EfficiencyPercent" Color="Color.Info" Rounded="true"
+                                       Class="flex-grow-1" Style="height:14px;" />
+                    <span style="width:52px" class="text-end">@p.EfficiencyPercent.ToString("0.#")%</span>
+                </div>
+            }
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+                Pontos obtidos ÷ máximo possível (placar exato em todos os jogos finalizados).
+            </MudText>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RankingDashboardViewModel Model { get; set; } = new();
+
+    private const int DEFAULT_VISIBLE_CAP = 10;
+
+    private static readonly string[] PARTICIPANT_PALETTE =
+    [
+        "#3B82F6", "#22C55E", "#F59E0B", "#06B6D4", "#EC4899", "#A855F7",
+        "#F94134", "#14B8A6", "#FB923C", "#84CC16", "#60A5FA", "#E879F9",
+    ];
+    private const string CURRENT_USER_COLOR = "#FFFFFF";
+
+    private readonly Dictionary<Guid, string> _color = new();
+    private readonly HashSet<Guid> _visible = new();
+    private List<RankingDashboardParticipant> _visibleList = new();
+
+    // Janela de jogos exibida nos gráficos de linha. 0 = tudo.
+    private static readonly int[] _windowOptions = [0, 20, 10, 5];
+    private int _window;
+
+    private string[] _xLabels = [];
+    private string[] _participantLabels = [];
+    private List<ChartSeries<double>> _progressSeries = new();
+    private List<ChartSeries<double>> _positionSeries = new();
+    private List<ChartSeries<double>> _distributionSeries = new();
+    private ChartOptions _lineOptions = new();
+    private LineChartOptions _positionOptions = new();
+    private ChartOptions _distributionOptions = new();
+
+    protected override void OnInitialized()
+    {
+        // Cor fixa por participante (você sempre branco). Cores estáveis ao ligar/desligar.
+        var i = 0;
+        foreach (var p in Model.Participants)
+        {
+            _color[p.UserId] = p.IsCurrentUser ? CURRENT_USER_COLOR : PARTICIPANT_PALETTE[i++ % PARTICIPANT_PALETTE.Length];
+        }
+
+        // Visíveis por padrão: até 10 primeiros do ranking + você sempre.
+        foreach (var p in Model.Participants.Take(DEFAULT_VISIBLE_CAP))
+            _visible.Add(p.UserId);
+        var meId = Model.Participants.FirstOrDefault(p => p.IsCurrentUser)?.UserId;
+        if (meId is { } id)
+            _visible.Add(id);
+
+        _participantLabels = Model.Participants.Select(p => FirstName(p.UserName)).ToArray();
+
+        _distributionSeries = PoolRankingViewModel.BreakdownOrder
+            .Select(st => new ChartSeries<double>
+            {
+                Name = ScoreTypeAbbr(st),
+                Data = Model.Participants.Select(p => (double)p.CountsByScoreType.GetValueOrDefault(st, 0)).ToArray(),
+            })
+            .ToList();
+        _distributionOptions = new ChartOptions
+        {
+            ChartPalette = PoolRankingViewModel.BreakdownOrder.Select(BadgeColor).ToArray(),
+        };
+
+        RebuildLineCharts();
+    }
+
+    private void Toggle(Guid id)
+    {
+        if (!_visible.Remove(id))
+            _visible.Add(id);
+        RebuildLineCharts();
+    }
+
+    private void SetWindow(int w)
+    {
+        _window = w;
+        RebuildLineCharts();
+    }
+
+    private void RebuildLineCharts()
+    {
+        _visibleList = Model.Participants.Where(p => _visible.Contains(p.UserId)).ToList();
+
+        // Janela: pega os últimos N jogos (0 = todos).
+        var total = Model.MatchLabels.Count;
+        var take = _window == 0 ? total : Math.Min(_window, total);
+        var start = total - take;
+
+        _xLabels = ThinLabels(start);
+
+        _progressSeries = _visibleList
+            .Select(p => new ChartSeries<double> { Name = p.UserName, Data = p.CumulativePoints[start..] })
+            .ToList();
+
+        // Posição invertida (1º vira o maior valor → topo do eixo). O rótulo do eixo
+        // é remapeado de volta pra posição real via YAxisToStringFunc, então o número
+        // continua certo (1º = "1º") com o líder no topo.
+        var m = Model.Participants.Count;
+        _positionSeries = _visibleList
+            .Select(p => new ChartSeries<double>
+            {
+                Name = p.UserName,
+                Data = p.Positions[start..].Select(pos => (double)(m + 1 - pos)).ToArray(),
+            })
+            .ToList();
+
+        var palette = _visibleList.Select(p => _color[p.UserId]).ToArray();
+
+        _lineOptions = new ChartOptions { ChartPalette = palette, ShowLegend = false };
+
+        _positionOptions = new LineChartOptions
+        {
+            ChartPalette = palette,
+            ShowLegend = false,
+            MaxNumYAxisTicks = m,
+            YAxisToStringFunc = v =>
+            {
+                var pos = (int)Math.Round(m + 1 - v);
+                return pos >= 1 && pos <= m ? $"{pos}º" : string.Empty;
+            },
+        };
+    }
+
+    private static string WindowLabel(int w) => w == 0 ? "Tudo" : $"Últimas {w}";
+
+    private string ChipStyle(RankingDashboardParticipant p, bool on)
+    {
+        var color = _color[p.UserId];
+        if (!on)
+            return "background:transparent;border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.4);text-decoration:line-through;";
+        // Texto escuro sobre o branco do "você"; claro nas demais.
+        var fg = color == CURRENT_USER_COLOR ? "#1a1a1a" : "#ffffff";
+        var weight = p.IsCurrentUser ? "font-weight:700;" : "font-weight:600;";
+        return $"background:{color};color:{fg};{weight}";
+    }
+
+    // Rótulos do eixo X da janela [start..], afinados para ~12 visíveis.
+    private string[] ThinLabels(int start)
+    {
+        var labels = Model.MatchLabels.Skip(start).ToList();
+        var count = labels.Count;
+        var step = Math.Max(1, (int)Math.Ceiling(count / 12.0));
+        var result = new string[count];
+        for (var i = 0; i < count; i++)
+            result[i] = i % step == 0 ? labels[i] : string.Empty;
+        return result;
+    }
+
+    private static string FirstName(string name)
+        => string.IsNullOrWhiteSpace(name) ? name : name.Split(' ')[0];
+
+    private static string BadgeColor(ScoreType t) => t switch
+    {
+        ScoreType.ExactScore => "#8B5CF6",
+        ScoreType.WinnerAndWinnerGoals => "#3B82F6",
+        ScoreType.WinnerAndDifference => "#06B6D4",
+        ScoreType.WinnerAndLoserGoals => "#22C55E",
+        ScoreType.WinnerOnly => "#F59E0B",
+        ScoreType.Consolation => "#F94134",
+        _ => "#4B5563",
+    };
+
+    private static string ScoreTypeAbbr(ScoreType t) => t switch
+    {
+        ScoreType.ExactScore => "Exato",
+        ScoreType.WinnerAndWinnerGoals => "V+GV",
+        ScoreType.WinnerAndDifference => "V+Dif",
+        ScoreType.WinnerAndLoserGoals => "V+GP",
+        ScoreType.WinnerOnly => "V",
+        ScoreType.Consolation => "Cons",
+        _ => t.ToString(),
+    };
+}

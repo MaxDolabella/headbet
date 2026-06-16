@@ -1,0 +1,38 @@
+@*
+    Badge de pontos conquistados numa partida. A COR mapeia pelo ScoreType (paleta
+    "escada de raridade"); o NÚMERO é a pontuação configurada do bolão (PoolScoringRule),
+    por isso varia de bolão pra bolão. Type nulo (jogo ainda não pontuado) cai no cinza,
+    igual NoBet. Sempre renderiza — inclusive o "0 pts" cinza.
+*@
+<MudTooltip Text="@_label">
+    <MudChip T="string" Variant="Variant.Filled" Size="Size.Small" Style="@_style">@Points pts</MudChip>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired] public int Points { get; set; }
+    [Parameter] public ScoreType? Type { get; set; }
+
+    private (string Bg, string Fg) _palette => Type switch
+    {
+        ScoreType.ExactScore           => ("#8B5CF6", "#ffffff"),
+        ScoreType.WinnerAndWinnerGoals => ("#3B82F6", "#ffffff"),
+        ScoreType.WinnerAndDifference  => ("#06B6D4", "#062a33"),
+        ScoreType.WinnerAndLoserGoals  => ("#22C55E", "#052e16"),
+        ScoreType.WinnerOnly           => ("#F59E0B", "#2a1a00"),
+        ScoreType.Consolation          => ("#F94134", "#ffffff"),
+        _                              => ("#4B5563", "#D1D5DB"), // NoBet + null
+    };
+
+    private string _style => $"background-color:{_palette.Bg};color:{_palette.Fg};font-weight:600;";
+
+    private string _label => Type switch
+    {
+        ScoreType.ExactScore           => "Placar exato",
+        ScoreType.WinnerAndWinnerGoals => "Vencedor + gols do vencedor",
+        ScoreType.WinnerAndDifference  => "Vencedor + diferença de gols / empate",
+        ScoreType.WinnerAndLoserGoals  => "Vencedor + gols do perdedor",
+        ScoreType.WinnerOnly           => "Apenas vencedor",
+        ScoreType.Consolation          => "Consolação (errou o resultado)",
+        _                              => "Sem palpite",
+    };
+}

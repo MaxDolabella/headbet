@@ -1,8 +1,10 @@
 @page "/pools/{PoolId:guid}/matches"
-@attribute [Authorize]
+@attribute [AllowAnonymous]
 @inject IBus Bus
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IDialogService Dialog
 
 <PageTitle>Jogos — HeadBet</PageTitle>
 
@@ -98,6 +100,10 @@ else
                                                  Icon="@Icons.Material.Filled.Check">Palpite: @ctx.Item.BetHomeScore x @ctx.Item.BetAwayScore</MudChip>
                                     </MudTooltip>
                                 }
+                                @if (_isMember && ctx.Item.Status == MatchStatus.Finished)
+                                {
+                                    <PointsBadge Type="ctx.Item.AppliedRule" Points="ctx.Item.Points" />
+                                }
                             </span>
                         </CellTemplate>
                     </TemplateColumn>
@@ -110,9 +116,13 @@ else
                                 </MudTooltip>
                                 @if (_isAdmin)
                                 {
+                                    <MudTooltip Text="Copiar confronto">
+                                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                                       OnClick="@(() => CopyMatchAsync(ctx.Item))" />
+                                    </MudTooltip>
                                     <MudTooltip Text="Editar placar">
                                         <MudIconButton Icon="@Icons.Material.Filled.SportsSoccer" Size="Size.Small" Color="Color.Warning"
-                                                       Href="@($"/pools/{PoolId}/matches/{ctx.Item.Id}/edit-score")" />
+                                                       OnClick="@(() => OpenEditScoreAsync(ctx.Item))" />
                                     </MudTooltip>
                                     <MudTooltip Text="Editar jogo">
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
@@ -137,12 +147,16 @@ else
                 @foreach (var m in FilteredMatches)
                 {
                     <MudPaper Elevation="2" Class="pa-3 mb-2">
-                        <div class="d-flex justify-end align-center mb-1" style="gap:.3rem;">
+                        <div class="d-flex justify-end align-center flex-wrap mb-1" style="gap:.3rem;">
                             <MatchStatusBadge Status="@m.Status" />
                             @if (m.HasBet)
                             {
                                 <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
                                          Icon="@Icons.Material.Filled.Check">Palpite: @m.BetHomeScore x @m.BetAwayScore</MudChip>
+                            }
+                            @if (_isMember && m.Status == MatchStatus.Finished)
+                            {
+                                <PointsBadge Type="m.AppliedRule" Points="m.Points" />
                             }
                         </div>
 
@@ -156,8 +170,10 @@ else
                                        Href="@($"/pools/{PoolId}/matches/{m.Id}")">Ver palpites</MudButton>
                             @if (_isAdmin)
                             {
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy"
+                                           OnClick="@(() => CopyMatchAsync(m))">Copiar</MudButton>
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
-                                           Href="@($"/pools/{PoolId}/matches/{m.Id}/edit-score")">Editar placar</MudButton>
+                                           OnClick="@(() => OpenEditScoreAsync(m))">Editar placar</MudButton>
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit"
                                            Href="@($"/pools/{PoolId}/matches/{m.Id}/edit")">Editar jogo</MudButton>
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
@@ -187,6 +203,7 @@ else
     [Parameter] public Guid PoolId { get; set; }
     private bool _loaded;
     private bool _isAdmin;
+    private bool _isMember;
     private List<MatchListViewModel> _matches = new();
     private List<BreadcrumbItem> _crumbs = new();
     private MatchStatus? _statusFilter;
@@ -197,6 +214,33 @@ else
     private List<MatchListViewModel> FilteredMatches
         => _statusFilter is null ? _matches : _matches.Where(m => m.Status == _statusFilter).ToList();
 
+    private async Task OpenEditScoreAsync(MatchListViewModel m)
+    {
+        var parameters = new DialogParameters<EditScoreDialog>
+        {
+            { x => x.Id, m.Id },
+            { x => x.PoolId, PoolId },
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await Dialog.ShowAsync<EditScoreDialog>("Editar placar", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            _matches = await Bus.SendAsync(new ListMatchesQuery(PoolId));
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyMatchAsync(MatchListViewModel m)
+    {
+        var text = $"{m.HomeTeamName} x {m.AwayTeamName}";
+        var ok = await JS.InvokeAsync<bool>("hbCopyToClipboard", text);
+        if (ok)
+            Snackbar.Add($"Copiado: {text}", Severity.Success);
+        else
+            Snackbar.Add("Não foi possível copiar.", Severity.Error);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var details = await Bus.SendAsync(new GetPoolDetailsQuery(PoolId));
@@ -206,6 +250,7 @@ else
             return;
         }
         _isAdmin = details.IsAdmin;
+        _isMember = details.IsMember;
         _matches = await Bus.SendAsync(new ListMatchesQuery(PoolId));
         _crumbs =
         [
