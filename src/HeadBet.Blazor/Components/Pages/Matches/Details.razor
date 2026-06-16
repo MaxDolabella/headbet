@@ -3,6 +3,7 @@
 @inject IBus Bus
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IDialogService Dialog
 
 <PageTitle>Detalhes do jogo — HeadBet</PageTitle>
 
@@ -23,7 +24,7 @@ else
             @if (_match.IsAdmin)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
-                           Href="@($"/pools/{PoolId}/matches/{Id}/edit-score")">Editar placar</MudButton>
+                           OnClick="OpenEditScore">Editar placar</MudButton>
             }
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
                        Href="@($"/pools/{PoolId}/matches")">Voltar</MudButton>
@@ -98,15 +99,22 @@ else
         </MudCardContent>
     </MudCard>
 
-    <MudCard Elevation="2" Class="mt-4">
-        <MudCardHeader><CardHeaderContent>
-            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Small" /> Comentários</MudText>
-        </CardHeaderContent></MudCardHeader>
-        <MudCardContent>
-            <ChatPanel PoolId="PoolId" Scope="ChatScope.Match" MatchId="Id"
-                       CanPost="true" CanModerate="_match.IsAdmin" />
-        </MudCardContent>
-    </MudCard>
+    @if (_ranking.Count > 0)
+    {
+        <div class="mt-4">
+            <RankingSummaryCard Items="_ranking" />
+        </div>
+    }
+
+    <MudExpansionPanels Class="mt-4">
+        <MudExpansionPanel Icon="@Icons.Material.Filled.ChatBubbleOutline" Text="Comentários" @bind-Expanded="_chatOpen">
+            @if (_chatOpen)
+            {
+                <ChatPanel PoolId="PoolId" Scope="ChatScope.Match" MatchId="Id"
+                           CanPost="true" CanModerate="_match.IsAdmin" />
+            }
+        </MudExpansionPanel>
+    </MudExpansionPanels>
 }
 
 @code {
@@ -117,6 +125,8 @@ else
     private int? _myHome;
     private int? _myAway;
     private bool _busy;
+    private bool _chatOpen;
+    private List<RankingSummaryItemViewModel> _ranking = new();
     private List<BreadcrumbItem> _crumbs = new();
 
     protected override async Task OnInitializedAsync()
@@ -129,6 +139,7 @@ else
         }
         _myHome = _match.MyBetHome;
         _myAway = _match.MyBetAway;
+        _ranking = await Bus.SendAsync(new GetPoolRankingSummaryQuery(PoolId)) ?? new();
         _crumbs =
         [
             new("Home", "/"),
@@ -155,5 +166,26 @@ else
             _match = await Bus.SendAsync(new GetMatchDetailsQuery(PoolId, Id));
         }
         finally { _busy = false; }
+    }
+
+    private async Task OpenEditScore()
+    {
+        var parameters = new DialogParameters<EditScoreDialog>
+        {
+            { x => x.Id, Id },
+            { x => x.PoolId, PoolId },
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await Dialog.ShowAsync<EditScoreDialog>("Editar placar", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _match = await Bus.SendAsync(new GetMatchDetailsQuery(PoolId, Id));
+        _ranking = await Bus.SendAsync(new GetPoolRankingSummaryQuery(PoolId)) ?? new();
+        StateHasChanged();
     }
 }

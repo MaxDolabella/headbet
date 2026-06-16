@@ -1,0 +1,86 @@
+@* Modal de edição de placar — mesmo card/form da tela /edit-score, mas sem sair
+   da tela de detalhes do jogo. Retorna DialogResult.Ok(true) quando algo muda,
+   pra o chamador recarregar. *@
+@inject IBus Bus
+@inject ISnackbar Snackbar
+@inject INotificationTranslator Translator
+
+<MudDialog>
+    <DialogContent>
+        @if (_model is null)
+        {
+            <div class="d-flex justify-center pa-4"><MudProgressCircular Indeterminate="true" /></div>
+        }
+        else
+        {
+            <MatchLine ShowHeader="true" MatchDate="_model.MatchDate" Group="@_model.Group" Round="_model.Round"
+                       HomeName="@_model.HomeTeamName" HomeAbbreviation="@_model.HomeTeamAbbreviation" HomeFlagUrl="@_model.HomeTeamFlagUrl"
+                       AwayName="@_model.AwayTeamName" AwayAbbreviation="@_model.AwayTeamAbbreviation" AwayFlagUrl="@_model.AwayTeamFlagUrl"
+                       Editable="@(!_isFinished)" Max="50" @bind-HomeScore="_model.HomeScore" @bind-AwayScore="_model.AwayScore" />
+
+            @if (_isFinished)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                    Partida encerrada. Para alterar o placar, use a tela de edição da partida.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Fechar</MudButton>
+        @if (_model is not null && !_isFinished)
+        {
+            <MudButton OnClick="@(() => Submit(finish: false))" Color="Color.Primary" Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Save" Disabled="_busy">Atualizar placar</MudButton>
+            <MudButton OnClick="@(() => Submit(finish: true))" Color="Color.Warning" Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Flag" Disabled="_busy">Encerrar partida</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public Guid Id { get; set; }
+    [Parameter, EditorRequired] public Guid PoolId { get; set; }
+
+    private MatchScoreFormViewModel? _model;
+    private bool _busy;
+    private bool _isFinished;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetMatchScoreFormQuery(Id, PoolId));
+        if (_model is not null)
+            _isFinished = _model.Status == MatchStatus.Finished;
+    }
+
+    private async Task Submit(bool finish)
+    {
+        _busy = true;
+        try
+        {
+            var result = await Bus.SendAsync(new UpdateMatchScoreCommand
+            {
+                Id = Id,
+                PoolId = PoolId,
+                HomeScore = _model!.HomeScore,
+                AwayScore = _model.AwayScore,
+                Finish = finish,
+            });
+
+            if (!result.IsValid)
+            {
+                foreach (var n in result.Notifications ?? [])
+                    Snackbar.AddNotification(n, Translator);
+                return;
+            }
+
+            Snackbar.Add(finish ? "Partida encerrada." : "Placar atualizado.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally { _busy = false; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

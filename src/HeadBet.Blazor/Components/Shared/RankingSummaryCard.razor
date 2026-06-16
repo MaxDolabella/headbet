@@ -1,0 +1,58 @@
+@* Resumo compacto do ranking para a tela de detalhes do jogo: posição, nome,
+   pontos atuais e a variação de posição (chevron verde/vermelho) em relação ao
+   ranking sem os jogos em andamento. *@
+<MudCard Elevation="2">
+    <MudCardHeader><CardHeaderContent>
+        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Leaderboard" Size="Size.Small" /> Ranking</MudText>
+    </CardHeaderContent></MudCardHeader>
+    <MudCardContent>
+        <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+            <thead>
+                <tr>
+                    <th style="width:48px" class="text-center">#</th>
+                    <th>Participante</th>
+                    <th class="text-end">Pontos</th>
+                    <th class="text-center" style="width:64px">Var.</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Items)
+                {
+                    <tr style="@(r.IsCurrentUser ? "background-color: rgba(255,255,255,.05);font-weight:600;" : "")">
+                        <td class="text-center">@r.Position&ordm;</td>
+                        <td>
+                            @r.UserName
+                            @if (r.IsCurrentUser)
+                            {
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">você</MudChip>
+                            }
+                        </td>
+                        <td class="text-end"><b>@r.TotalPoints</b></td>
+                        <td class="text-center">
+                            @if (r.PositionDelta > 0)
+                            {
+                                <span style="color:#22C55E;display:inline-flex;align-items:center;font-weight:600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropUp" Size="Size.Small" />@r.PositionDelta
+                                </span>
+                            }
+                            else if (r.PositionDelta < 0)
+                            {
+                                <span style="color:#F94134;display:inline-flex;align-items:center;font-weight:600;">
+                                    <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Size="Size.Small" />@(-r.PositionDelta)
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="mud-text-secondary">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public List<RankingSummaryItemViewModel> Items { get; set; } = [];
+}
