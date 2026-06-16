@@ -1,0 +1,37 @@
+@* Card com cabeçalho clicável que recolhe/expande o conteúdo (MudCollapse).
+   Usado na tela do bolão para deixar os cards colapsáveis, preservando a grade. *@
+<MudCard Elevation="2" Class="@Class">
+    <MudCardHeader Style="cursor:pointer;user-select:none;" @onclick="Toggle">
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">
+                @if (!string.IsNullOrEmpty(Icon))
+                {
+                    <MudIcon Icon="@Icon" Size="Size.Small" />
+                }
+                @Title
+            </MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudIcon Icon="@(_expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" />
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCollapse Expanded="_expanded">
+        <MudCardContent>
+            @ChildContent
+        </MudCardContent>
+    </MudCollapse>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public bool Expanded { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _expanded;
+
+    protected override void OnInitialized() => _expanded = Expanded;
+
+    private void Toggle() => _expanded = !_expanded;
+}

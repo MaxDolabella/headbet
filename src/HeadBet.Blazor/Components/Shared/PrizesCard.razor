@@ -1,12 +1,6 @@
 @using HeadBet.Core.Domain.Enums
 
-<MudCard Elevation="2">
-    <MudCardHeader>
-        <CardHeaderContent>
-            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Small" /> Prêmios</MudText>
-        </CardHeaderContent>
-    </MudCardHeader>
-    <MudCardContent>
+<CollapsibleCard Title="Prêmios" Icon="@Icons.Material.Filled.EmojiEvents">
         @if (CollectedAmount is { } collected)
         {
             <div class="d-flex justify-content-between align-center mb-3" style="gap:1.5rem;">
@@ -63,8 +57,7 @@
                 </tbody>
             </MudSimpleTable>
         }
-    </MudCardContent>
-</MudCard>
+</CollapsibleCard>
 
 @code {
     [Parameter, EditorRequired] public List<PrizeItemViewModel> Prizes { get; set; } = [];

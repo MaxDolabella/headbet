@@ -1,13 +1,7 @@
 @using HeadBet.Core.Domain.Enums
 
-<MudCard Elevation="2">
-    <MudCardHeader>
-        <CardHeaderContent>
-            <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Calculate" Size="Size.Small" /> Regras de pontuação</MudText>
-        </CardHeaderContent>
-    </MudCardHeader>
-    <MudCardContent>
-        <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+<CollapsibleCard Title="Regras de pontuação" Icon="@Icons.Material.Filled.Calculate">
+    <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
             <thead>
                 <tr>
                     <th>Regra</th>
@@ -24,8 +18,7 @@
                 }
             </tbody>
         </MudSimpleTable>
-    </MudCardContent>
-</MudCard>
+</CollapsibleCard>
 
 @code {
     [Parameter, EditorRequired] public List<ScoringRuleItemViewModel> Rules { get; set; } = [];

@@ -105,11 +105,7 @@ else
 
     <MudGrid>
         <MudItem xs="12" md="6">
-            <MudCard Elevation="2" Class="h-100">
-                <MudCardHeader><CardHeaderContent>
-                    <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> Dados</MudText>
-                </CardHeaderContent></MudCardHeader>
-                <MudCardContent>
+            <CollapsibleCard Title="Dados" Icon="@Icons.Material.Filled.Info">
                     <div class="hb-data-grid">
                         <span class="mud-text-secondary">Visibilidade</span>
                         <span><PoolVisibilityBadge IsPublic="@_pool.IsPublic" /></span>
@@ -132,8 +128,7 @@ else
                         <span class="mud-text-secondary">Criado em</span>
                         <span>@_pool.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                     </div>
-                </MudCardContent>
-            </MudCard>
+            </CollapsibleCard>
         </MudItem>
 
         <MudItem xs="12" md="6">
@@ -150,30 +145,21 @@ else
         @if (_pool.IsAdmin)
         {
             <MudItem xs="12" md="6">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardHeader><CardHeaderContent>
-                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" /> Link de convite</MudText>
-                    </CardHeaderContent></MudCardHeader>
-                    <MudCardContent>
+                <CollapsibleCard Title="Link de convite" Icon="@Icons.Material.Filled.Link">
                         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
                             Compartilhe para convidar pessoas. Quem acessar entra direto como participante ativo.
                         </MudText>
                         <MudTextField T="string" Value="@_inviteUrl" ReadOnly="true" Variant="Variant.Outlined"
                                       Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
                                       OnAdornmentClick="CopyInvite" />
-                    </MudCardContent>
-                </MudCard>
+                </CollapsibleCard>
             </MudItem>
         }
 
         @if (_pool.IsMember)
         {
             <MudItem xs="12" md="6">
-                <MudCard Elevation="2" Class="h-100">
-                    <MudCardHeader><CardHeaderContent>
-                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" /> Membros (@_pool.Members.Count)</MudText>
-                    </CardHeaderContent></MudCardHeader>
-                    <MudCardContent>
+                <CollapsibleCard Title="@($"Membros ({_pool.Members.Count})")" Icon="@Icons.Material.Filled.People">
                         <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
                             <tbody>
                             @foreach (var m in _pool.Members)
@@ -185,8 +171,7 @@ else
                             }
                             </tbody>
                         </MudSimpleTable>
-                    </MudCardContent>
-                </MudCard>
+                </CollapsibleCard>
             </MudItem>
         }
     </MudGrid>
