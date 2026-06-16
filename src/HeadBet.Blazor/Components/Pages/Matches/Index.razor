@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IDialogService Dialog
 
 <PageTitle>Jogos — HeadBet</PageTitle>
 
@@ -121,7 +122,7 @@ else
                                     </MudTooltip>
                                     <MudTooltip Text="Editar placar">
                                         <MudIconButton Icon="@Icons.Material.Filled.SportsSoccer" Size="Size.Small" Color="Color.Warning"
-                                                       Href="@($"/pools/{PoolId}/matches/{ctx.Item.Id}/edit-score")" />
+                                                       OnClick="@(() => OpenEditScoreAsync(ctx.Item))" />
                                     </MudTooltip>
                                     <MudTooltip Text="Editar jogo">
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
@@ -172,7 +173,7 @@ else
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy"
                                            OnClick="@(() => CopyMatchAsync(m))">Copiar</MudButton>
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
-                                           Href="@($"/pools/{PoolId}/matches/{m.Id}/edit-score")">Editar placar</MudButton>
+                                           OnClick="@(() => OpenEditScoreAsync(m))">Editar placar</MudButton>
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit"
                                            Href="@($"/pools/{PoolId}/matches/{m.Id}/edit")">Editar jogo</MudButton>
                                 <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
@@ -211,6 +212,23 @@ else
 
     private List<MatchListViewModel> FilteredMatches
         => _statusFilter is null ? _matches : _matches.Where(m => m.Status == _statusFilter).ToList();
+
+    private async Task OpenEditScoreAsync(MatchListViewModel m)
+    {
+        var parameters = new DialogParameters<EditScoreDialog>
+        {
+            { x => x.Id, m.Id },
+            { x => x.PoolId, PoolId },
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await Dialog.ShowAsync<EditScoreDialog>("Editar placar", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
+            _matches = await Bus.SendAsync(new ListMatchesQuery(PoolId));
+            StateHasChanged();
+        }
+    }
 
     private async Task CopyMatchAsync(MatchListViewModel m)
     {
