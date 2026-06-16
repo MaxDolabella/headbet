@@ -1,5 +1,5 @@
 @page "/pools/{PoolId:guid}/matches/{Id:guid}"
-@attribute [Authorize]
+@attribute [AllowAnonymous]
 @inject IBus Bus
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -106,15 +106,18 @@ else
         </div>
     }
 
-    <MudExpansionPanels Class="mt-4">
-        <MudExpansionPanel Icon="@Icons.Material.Filled.ChatBubbleOutline" Text="Comentários" @bind-Expanded="_chatOpen">
-            @if (_chatOpen)
-            {
-                <ChatPanel PoolId="PoolId" Scope="ChatScope.Match" MatchId="Id"
-                           CanPost="true" CanModerate="_match.IsAdmin" />
-            }
-        </MudExpansionPanel>
-    </MudExpansionPanels>
+    @if (_match.IsMember)
+    {
+        <MudExpansionPanels Class="mt-4">
+            <MudExpansionPanel Icon="@Icons.Material.Filled.ChatBubbleOutline" Text="Comentários" @bind-Expanded="_chatOpen">
+                @if (_chatOpen)
+                {
+                    <ChatPanel PoolId="PoolId" Scope="ChatScope.Match" MatchId="Id"
+                               CanPost="true" CanModerate="_match.IsAdmin" />
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
 }
 
 @code {

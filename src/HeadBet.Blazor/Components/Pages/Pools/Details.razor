@@ -41,7 +41,7 @@ else
                     <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="@($"/pools/{Id}/delete")">Apagar bolão</MudMenuItem>
                 </MudMenu>
             }
-            else if (_pool.IsMember)
+            else
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Info"
                            StartIcon="@Icons.Material.Filled.SportsSoccer" Href="@($"/pools/{Id}/matches")">Jogos</MudButton>

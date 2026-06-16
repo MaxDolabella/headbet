@@ -1,5 +1,5 @@
 @page "/pools/{PoolId:guid}/matches"
-@attribute [Authorize]
+@attribute [AllowAnonymous]
 @inject IBus Bus
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -100,7 +100,7 @@ else
                                                  Icon="@Icons.Material.Filled.Check">Palpite: @ctx.Item.BetHomeScore x @ctx.Item.BetAwayScore</MudChip>
                                     </MudTooltip>
                                 }
-                                @if (ctx.Item.Status == MatchStatus.Finished)
+                                @if (_isMember && ctx.Item.Status == MatchStatus.Finished)
                                 {
                                     <PointsBadge Type="ctx.Item.AppliedRule" Points="ctx.Item.Points" />
                                 }
@@ -154,7 +154,7 @@ else
                                 <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled"
                                          Icon="@Icons.Material.Filled.Check">Palpite: @m.BetHomeScore x @m.BetAwayScore</MudChip>
                             }
-                            @if (m.Status == MatchStatus.Finished)
+                            @if (_isMember && m.Status == MatchStatus.Finished)
                             {
                                 <PointsBadge Type="m.AppliedRule" Points="m.Points" />
                             }
@@ -203,6 +203,7 @@ else
     [Parameter] public Guid PoolId { get; set; }
     private bool _loaded;
     private bool _isAdmin;
+    private bool _isMember;
     private List<MatchListViewModel> _matches = new();
     private List<BreadcrumbItem> _crumbs = new();
     private MatchStatus? _statusFilter;
@@ -249,6 +250,7 @@ else
             return;
         }
         _isAdmin = details.IsAdmin;
+        _isMember = details.IsMember;
         _matches = await Bus.SendAsync(new ListMatchesQuery(PoolId));
         _crumbs =
         [
