@@ -88,16 +88,7 @@ else
                             <td class="text-end">
                                 @if (b.CanShowBet)
                                 {
-                                    var color = b.AppliedRule switch
-                                    {
-                                        ScoreType.ExactScore => Color.Success,
-                                        ScoreType.WinnerAndWinnerGoals => Color.Info,
-                                        ScoreType.WinnerAndDifference => Color.Info,
-                                        ScoreType.WinnerAndLoserGoals => Color.Info,
-                                        ScoreType.WinnerOnly => Color.Warning,
-                                        _ => Color.Default,
-                                    };
-                                    <MudChip T="string" Color="color" Size="Size.Small">@b.Points pts</MudChip>
+                                    <PointsBadge Type="b.AppliedRule" Points="b.Points" />
                                 }
                             </td>
                         </tr>
