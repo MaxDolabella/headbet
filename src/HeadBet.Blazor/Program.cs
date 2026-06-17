@@ -6,6 +6,7 @@ using HeadBet.Core.Domain.Interfaces;
 using HeadBet.Core.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using MudBlazor.Services;
 
@@ -69,6 +70,20 @@ var app = builder.Build();
 
 // --- Migrations + seeds ---
 await app.InitializeAsync();
+
+// --- Atrás de proxy reverso (Nginx no host, TLS terminado lá): honra
+//     X-Forwarded-Proto/For para o app saber que o request original é HTTPS.
+//     Sem isso, o Blazor negocia o circuito com esquema errado (http://localhost:5000)
+//     e o UseHttpsRedirection não acha a porta https ("Failed to determine the https port").
+//     Precisa ser o PRIMEIRO middleware. Kestrel só escuta em localhost, então o único
+//     upstream é o proxy local — seguro limpar as listas de proxies/redes confiáveis. ---
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
 
 if (!app.Environment.IsDevelopment())
 {
