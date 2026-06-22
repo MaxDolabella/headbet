@@ -60,6 +60,8 @@ builder.Services
         options.Cookie.Name = "HeadBet.Blazor.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        // Só trafega o cookie de auth sobre HTTPS — não depende do UseHttpsRedirection.
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     });
 
 builder.Services.AddAuthorization();
