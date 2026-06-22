@@ -1,0 +1,198 @@
+@page "/pools/{PoolId:guid}/stats"
+@attribute [AllowAnonymous]
+@inject IBus Bus
+@inject NavigationManager Nav
+
+<PageTitle>Estatísticas — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@($"Estatísticas — {_model.PoolName}")" Icon="@Icons.Material.Filled.Insights" Breadcrumbs="@_crumbs" HelpAnchor="ranking">
+        <Actions>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="@($"/pools/{PoolId}")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (!_model.HasData)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Ainda não há jogos finalizados neste bolão.</MudAlert>
+    }
+    else
+    {
+        @* ---- Bloco 2: destaques de jogos ---- *@
+        <MudGrid Class="mb-2">
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Style="height:100%;">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.GpsFixed" Size="Size.Small" /> Mais cravadas</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        @if (_model.MostExact.Count == 0)
+                        {
+                            <MudText Class="mud-text-secondary">Nenhum placar exato ainda.</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var (g, i) in _model.MostExact.Select((g, i) => (g, i)))
+                            {
+                                <div class="d-flex justify-space-between align-center hb-stat-row" @onclick="@(() => Go(g.MatchId))">
+                                    <span><b>@(i + 1)º</b> @g.MatchLabel <span class="mud-text-secondary">(@g.ResultLabel)</span></span>
+                                    <b>@g.Count</b>
+                                </div>
+                            }
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Style="height:100%;">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" /> Maior média</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        @foreach (var (g, i) in _model.TopAverage.Select((g, i) => (g, i)))
+                        {
+                            <div class="d-flex justify-space-between align-center hb-stat-row" @onclick="@(() => Go(g.MatchId))">
+                                <span><b>@(i + 1)º</b> @g.MatchLabel <span class="mud-text-secondary">(@g.ResultLabel)</span></span>
+                                <b>@g.Average.ToString("0.0")</b>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Style="height:100%;">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.TrendingDown" Size="Size.Small" /> Zebra (menor média)</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        @foreach (var (g, i) in _model.BottomAverage.Select((g, i) => (g, i)))
+                        {
+                            <div class="d-flex justify-space-between align-center hb-stat-row" @onclick="@(() => Go(g.MatchId))">
+                                <span><b>@(i + 1)º</b> @g.MatchLabel <span class="mud-text-secondary">(@g.ResultLabel)</span></span>
+                                <b>@g.Average.ToString("0.0")</b>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        @* ---- Bloco 1: lista de palpites filtrável ---- *@
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Small" /> Palpites (@FilteredBets.Count())</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudSelect T="ScoreType?" Value="_selectedType" ValueChanged="OnTypeChanged" Label="Tipo de acerto" Clearable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:240px;">
+                        @foreach (var t in _typeOptions)
+                        {
+                            <MudSelectItem T="ScoreType?" Value="@t">@TypeLabel(t)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                @foreach (var item in FilteredBets)
+                {
+                    <MudPaper Elevation="0" Outlined="true" Class="pa-2 mb-1 hb-match-card-link" @onclick="@(() => Go(item.MatchId))">
+                        <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
+                            <div style="min-width:0;">
+                                <div class="text-truncate"><b>@item.MatchLabel</b> <span class="mud-text-secondary">@item.MatchDate.ToString("dd/MM")</span></div>
+                                <div class="mud-text-secondary">@item.UserName — palpite <b>@item.BetLabel</b> · resultado <b>@item.ResultLabel</b></div>
+                            </div>
+                            <PointsBadge Type="item.AppliedRule" Points="item.Points" />
+                        </div>
+                    </MudPaper>
+                }
+                @if (!FilteredBets.Any())
+                {
+                    <MudText Class="mud-text-secondary">Nenhum palpite para este filtro.</MudText>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        @* ---- Bloco 3: consenso por jogo ---- *@
+        <MudCard Elevation="2">
+            <MudCardHeader><CardHeaderContent>
+                <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" /> Consenso por jogo</MudText>
+            </CardHeaderContent></MudCardHeader>
+            <MudCardContent>
+                <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+                    <thead>
+                        <tr>
+                            <th>Jogo</th>
+                            <th class="text-center">Consenso</th>
+                            <th class="text-center">Resultado</th>
+                            <th class="text-center">Cravaram</th>
+                            <th>Mais palpitados</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _model.Consensus)
+                        {
+                            <tr class="hb-stat-row" @onclick="@(() => Go(c.MatchId))">
+                                <td>@c.MatchLabel</td>
+                                <td class="text-center"><b>@c.ConsensusLabel</b> <span class="mud-text-secondary">(@c.ConsensusCount)</span></td>
+                                <td class="text-center"><b>@c.ResultLabel</b></td>
+                                <td class="text-center">@c.ExactCount</td>
+                                <td class="mud-text-secondary">@c.TopThree</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudCardContent>
+        </MudCard>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+
+    private PoolStatsViewModel? _model;
+    private List<ScoreType> _typeOptions = new();
+    private ScoreType? _selectedType;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    private IEnumerable<StatBetItemViewModel> FilteredBets =>
+        _selectedType is null ? _model!.Bets : _model!.Bets.Where(b => b.AppliedRule == _selectedType);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetPoolStatsQuery(PoolId));
+        if (_model is null) { Nav.NavigateTo("/pools"); return; }
+
+        _typeOptions = PoolRankingViewModel.BreakdownOrder
+            .Where(t => _model.Bets.Any(b => b.AppliedRule == t))
+            .ToList();
+
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_model.PoolName, $"/pools/{PoolId}"),
+            new("Estatísticas", null, disabled: true),
+        ];
+    }
+
+    private void OnTypeChanged(ScoreType? value) => _selectedType = value;
+
+    private void Go(Guid matchId) => Nav.NavigateTo($"/pools/{PoolId}/matches/{matchId}");
+
+    private static string TypeLabel(ScoreType t) => t switch
+    {
+        ScoreType.ExactScore => "Placar exato",
+        ScoreType.WinnerAndWinnerGoals => "Vencedor + gols do vencedor",
+        ScoreType.WinnerAndDifference => "Vencedor + diferença / empate",
+        ScoreType.WinnerAndLoserGoals => "Vencedor + gols do perdedor",
+        ScoreType.WinnerOnly => "Apenas vencedor",
+        ScoreType.Consolation => "Consolação",
+        _ => t.ToString(),
+    };
+}

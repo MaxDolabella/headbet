@@ -15,6 +15,7 @@
                 <MudNavLink Href="@($"/pools/{poolId}/matches")" Icon="@Icons.Material.Filled.SportsSoccer" Match="NavLinkMatch.Prefix">Jogos</MudNavLink>
                 <MudNavLink Href="@($"/pools/{poolId}/bets")" Icon="@Icons.Material.Filled.Casino" Match="NavLinkMatch.Prefix">Palpites</MudNavLink>
                 <MudNavLink Href="@($"/pools/{poolId}/ranking")" Icon="@Icons.Material.Filled.BarChart" Match="NavLinkMatch.Prefix">Ranking</MudNavLink>
+                <MudNavLink Href="@($"/pools/{poolId}/stats")" Icon="@Icons.Material.Filled.Insights" Match="NavLinkMatch.Prefix">Estatísticas</MudNavLink>
                 @if (_adminNav?.IsAdmin == true)
                 {
                     <MudNavLink Href="@($"/pools/{poolId}/members")" Icon="@Icons.Material.Filled.People" Match="NavLinkMatch.Prefix">
