@@ -48,7 +48,7 @@ else
                                 <RankingPositionBadge Position="item.Position" IsAwarded="item.IsAwarded" />
                             </td>
                             <td>
-                                @item.UserName
+                                <MudLink Href="@($"/pools/{PoolId}/participants/{item.UserId}")">@item.UserName</MudLink>
                                 @if (item.IsCurrentUser)
                                 {
                                     <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">você</MudChip>

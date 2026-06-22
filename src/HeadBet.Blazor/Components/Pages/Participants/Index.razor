@@ -1,0 +1,107 @@
+@page "/pools/{PoolId:guid}/participants/{UserId:guid}"
+@attribute [AllowAnonymous]
+@inject IBus Bus
+@inject NavigationManager Nav
+
+<PageTitle>Palpites do participante — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@($"Palpites — {_model.UserName}")" Icon="@Icons.Material.Filled.Person" Breadcrumbs="@_crumbs" HelpAnchor="ranking">
+        <Actions>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.BarChart" Href="@($"/pools/{PoolId}/ranking")">Ranking</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (!_model.HasAccess)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Este bolão é privado.</MudAlert>
+    }
+    else if (string.IsNullOrEmpty(_model.UserName))
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Participante não encontrado neste bolão.</MudAlert>
+    }
+    else
+    {
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardContent>
+                <div class="d-flex align-center flex-wrap" style="gap:1.5rem;">
+                    <div>
+                        <MudText Typo="Typo.h6">
+                            @_model.UserName
+                            @if (_model.IsCurrentUser)
+                            {
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">você</MudChip>
+                            }
+                        </MudText>
+                    </div>
+                    <MudSpacer />
+                    <div class="text-center">
+                        <MudText Typo="Typo.h6"><b>@_model.TotalPoints</b></MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">pontos</MudText>
+                    </div>
+                    <div class="text-center">
+                        <MudText Typo="Typo.h6"><b>@_model.BetCount</b></MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">palpites</MudText>
+                    </div>
+                </div>
+            </MudCardContent>
+        </MudCard>
+
+        <MudCard Elevation="2">
+            <MudCardHeader><CardHeaderContent>
+                <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Casino" Size="Size.Small" /> Palpites em jogos finalizados</MudText>
+            </CardHeaderContent></MudCardHeader>
+            <MudCardContent>
+                @if (_model.Bets.Count == 0)
+                {
+                    <MudText Class="mud-text-secondary">Nenhum palpite em jogos finalizados ainda.</MudText>
+                }
+                else
+                {
+                    @foreach (var item in _model.Bets)
+                    {
+                        <MudPaper Elevation="0" Outlined="true" Class="pa-2 mb-1 hb-match-card-link" @onclick="@(() => Go(item.MatchId))">
+                            <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
+                                <div style="min-width:0;">
+                                    <div class="text-truncate"><b>@item.MatchLabel</b> <span class="mud-text-secondary">@item.MatchDate.ToString("dd/MM")</span></div>
+                                    <div class="mud-text-secondary">palpite <b>@item.BetLabel</b> · resultado <b>@item.ResultLabel</b></div>
+                                </div>
+                                <PointsBadge Type="item.AppliedRule" Points="item.Points" />
+                            </div>
+                        </MudPaper>
+                    }
+                }
+            </MudCardContent>
+        </MudCard>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+    [Parameter] public Guid UserId { get; set; }
+
+    private UserBetsViewModel? _model;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetUserBetsQuery(PoolId, UserId));
+        if (_model is null) { Nav.NavigateTo("/pools"); return; }
+
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_model.PoolName, $"/pools/{PoolId}"),
+            new("Ranking", $"/pools/{PoolId}/ranking"),
+            new(_model.UserName, null, disabled: true),
+        ];
+    }
+
+    private void Go(Guid matchId) => Nav.NavigateTo($"/pools/{PoolId}/matches/{matchId}");
+}
