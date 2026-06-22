@@ -16,6 +16,10 @@ else
     <PageHeader Title="@($"Palpites {_match.HomeTeamName} x {_match.AwayTeamName}")"
                 Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
         <Actions>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ChevronLeft"
+                       Disabled="@(_match.PrevMatchId is null)" OnClick="@(() => GoTo(_match.PrevMatchId))">Anterior</MudButton>
+            <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ChevronRight"
+                       Disabled="@(_match.NextMatchId is null)" OnClick="@(() => GoTo(_match.NextMatchId))">Próximo</MudButton>
             @if (!string.IsNullOrWhiteSpace(_match.BroadcastUrl))
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.LiveTv"
@@ -132,7 +136,20 @@ else
     private List<RankingSummaryItemViewModel> _ranking = new();
     private List<BreadcrumbItem> _crumbs = new();
 
-    protected override async Task OnInitializedAsync()
+    private Guid _loadedId;
+
+    // Navegar entre jogos é a mesma página com outro Id de rota: o componente é reusado e
+    // OnInitializedAsync NÃO roda de novo. Carregamos em OnParametersSetAsync, com guard por Id.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id == _loadedId)
+            return;
+        _loadedId = Id;
+        _match = null; // mostra o spinner ao trocar de jogo
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
     {
         _match = await Bus.SendAsync(new GetMatchDetailsQuery(PoolId, Id));
         if (_match is null)
@@ -151,6 +168,12 @@ else
             new("Jogos", $"/pools/{PoolId}/matches"),
             new($"{_match.HomeTeamName} x {_match.AwayTeamName}", null, disabled: true),
         ];
+    }
+
+    private void GoTo(Guid? matchId)
+    {
+        if (matchId is { } id)
+            Nav.NavigateTo($"/pools/{PoolId}/matches/{id}");
     }
 
     private async Task SaveBet()

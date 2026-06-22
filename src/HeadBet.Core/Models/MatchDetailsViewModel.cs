@@ -11,6 +11,8 @@ public class MatchDetailsViewModel
     public bool IsAdmin { get; set; }
 
     public Guid MatchId { get; set; }
+    public Guid? PrevMatchId { get; set; }
+    public Guid? NextMatchId { get; set; }
     public string HomeTeamName { get; set; } = string.Empty;
     public string HomeTeamFlagUrl { get; set; } = string.Empty;
     public string AwayTeamName { get; set; } = string.Empty;
