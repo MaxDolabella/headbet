@@ -69,7 +69,15 @@ builder.Services.AddCascadingAuthenticationState();
 
 // --- Blazor Web App: Razor Components + Interactive Server ---
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+    {
+        // O Console SQL do admin recebe scripts grandes pelo circuito. O padrão de
+        // 32 KB faz o SignalR rejeitar a mensagem ao colar — o @bind-Value não chega
+        // ao servidor e o campo fica "vazio" lá. 512 KB cobre o maior script real
+        // (~226 KB) com folga, mantendo o teto modesto (default é 32 KB).
+        options.MaximumReceiveMessageSize = 512 * 1024;
+    });
 
 // --- Antiforgery para endpoints de auth ---
 builder.Services.AddAntiforgery();
