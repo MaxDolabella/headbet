@@ -24,6 +24,7 @@ else
     }
     else
     {
+        var leaderPoints = _model.Items.Count > 0 ? _model.Items.Max(i => i.TotalPoints) : 0;
         <MudPaper Elevation="2">
             <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
                 <thead>
@@ -31,6 +32,7 @@ else
                         <th style="width:60px" class="text-center">#</th>
                         <th>Participante</th>
                         <th class="text-end">Pontos</th>
+                        <th class="text-end">Dif. 1º</th>
                         @foreach (var st in PoolRankingViewModel.BreakdownOrder)
                         {
                             <th class="text-center small">@ScoreTypeAbbr(st)</th>
@@ -53,6 +55,7 @@ else
                                 }
                             </td>
                             <td class="text-end"><b>@item.TotalPoints</b></td>
+                            <td class="text-end mud-text-secondary">@GapLabel(leaderPoints, item.TotalPoints)</td>
                             @foreach (var st in PoolRankingViewModel.BreakdownOrder)
                             {
                                 <td class="text-center small">@item.CountsByScoreType.GetValueOrDefault(st, 0)</td>
@@ -113,6 +116,13 @@ else
     // Gerada a partir do BreakdownOrder: novos ScoreType entram aqui sem editar o texto à mão.
     private static readonly string _tiebreakerLegend =
         "pontos → " + string.Join(" → ", PoolRankingViewModel.BreakdownOrder.Select(ScoreTypeAbbr)) + ".";
+
+    // Diferença de pontos para o líder. Líder mostra "—"; os demais, quanto faltam (ex.: "-18").
+    private static string GapLabel(int leaderPoints, int points)
+    {
+        var gap = leaderPoints - points;
+        return gap == 0 ? "—" : $"-{gap}";
+    }
 
     private static string ScoreTypeAbbr(ScoreType t) => t switch
     {

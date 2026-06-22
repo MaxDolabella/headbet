@@ -53,21 +53,26 @@ public sealed class GetPoolRankingSummaryQueryHandler(
 
         var scores = await scoreRepository.ToListAsync(s => s.Match.PoolId == query.PoolId, @readonly: true, ct);
 
-        var inProgressIds = (await matchRepository.ToListAsync(
-                m => m.PoolId == query.PoolId && m.Status == MatchStatus.InProgress, @readonly: true, ct))
-            .Select(m => m.Id)
-            .ToHashSet();
+        // Variação de posição = ranking só com placares reais (jogos FINALIZADOS) comparado
+        // ao ranking atual (que também soma os jogos EM ANDAMENTO). Enquanto não há jogo ao
+        // vivo, os dois rankings são idênticos e a variação é zero. Quando há, o baseline
+        // ignora apenas os scores dos jogos que ainda não terminaram.
+        var statusByMatch = (await matchRepository.ToListAsync(
+                m => m.PoolId == query.PoolId, @readonly: true, ct))
+            .ToDictionary(m => m.Id, m => m.Status);
+
+        var hasLiveMatch = statusByMatch.Values.Any(s => s == MatchStatus.InProgress);
 
         var currentUserId = me?.UserId;
 
         // Prêmios/arrecadação são irrelevantes para o resumo — passamos vazio/zero.
         var current = PoolRankingCalculator.Compute(memberTuples, scores, [], pool.PrizeMode, 0m, currentUserId);
 
-        var previous = inProgressIds.Count == 0
+        var previous = !hasLiveMatch
             ? current
             : PoolRankingCalculator.Compute(
                 memberTuples,
-                scores.Where(s => !inProgressIds.Contains(s.MatchId)).ToList(),
+                scores.Where(s => statusByMatch.GetValueOrDefault(s.MatchId) == MatchStatus.Finished).ToList(),
                 [], pool.PrizeMode, 0m, currentUserId);
 
         var prevPositionByUser = previous.ToDictionary(i => i.UserId, i => i.Position);
