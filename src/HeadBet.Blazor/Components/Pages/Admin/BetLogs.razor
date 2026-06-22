@@ -1,0 +1,133 @@
+@page "/admin/bet-logs"
+@attribute [Authorize(Roles = Roles.ADMIN)]
+@inject IBus Bus
+
+<PageTitle>Log de palpites — HeadBet</PageTitle>
+
+<PageHeader Title="Log de palpites" Icon="@Icons.Material.Filled.History" Breadcrumbs="@_crumbs" />
+
+@if (_all is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-3">
+        <div class="d-flex flex-wrap" style="gap:1rem;">
+            <MudSelect T="Guid?" Value="_selectedPool" ValueChanged="OnPoolChanged" Label="Bolão" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:240px;">
+                @foreach (var p in _poolOptions)
+                {
+                    <MudSelectItem T="Guid?" Value="@p.Id">@p.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="Guid?" Value="_selectedUser" ValueChanged="OnUserChanged" Label="Usuário" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:240px;">
+                @foreach (var u in _userOptions)
+                {
+                    <MudSelectItem T="Guid?" Value="@u.Id">@u.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudPaper>
+
+    <MudPaper Elevation="2">
+        <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
+            <thead>
+                <tr>
+                    <th>Data/hora</th>
+                    <th>Bolão</th>
+                    <th>Jogo</th>
+                    <th>Usuário</th>
+                    <th class="text-center">Ação</th>
+                    <th class="text-center">Palpite</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _filtered)
+                {
+                    <tr>
+                        <td>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@item.PoolName</td>
+                        <td>@item.MatchLabel</td>
+                        <td>@item.UserName</td>
+                        <td class="text-center">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                     Color="@(item.Action == BetLogAction.Created ? Color.Success : Color.Info)">
+                                @(item.Action == BetLogAction.Created ? "Criado" : "Atualizado")
+                            </MudChip>
+                        </td>
+                        <td class="text-center">@BetLabel(item)</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+        @if (_filtered.Count == 0)
+        {
+            <div class="pa-4"><MudText Class="mud-text-secondary">Nenhum registro.</MudText></div>
+        }
+        <div class="pa-3">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                Exibindo @_filtered.Count de @_all.Count registro(s).
+                @if (_all.Count >= MAX_ROWS)
+                {
+                    <span>Limite de @MAX_ROWS atingido — registros mais antigos podem não aparecer.</span>
+                }
+            </MudText>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    private const int MAX_ROWS = 500;
+
+    private List<BetLogItemViewModel>? _all;
+    private List<BetLogItemViewModel> _filtered = new();
+    private List<(Guid Id, string Name)> _poolOptions = new();
+    private List<(Guid Id, string Name)> _userOptions = new();
+    private Guid? _selectedPool;
+    private Guid? _selectedUser;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Log de palpites", null, disabled: true),
+        ];
+
+        _all = await Bus.SendAsync(new GetBetLogsQuery(null, null)) ?? new();
+
+        _poolOptions = _all.GroupBy(x => x.PoolId)
+            .Select(g => (Id: g.Key, Name: g.First().PoolName))
+            .OrderBy(x => x.Name)
+            .ToList();
+        _userOptions = _all.GroupBy(x => x.UserId)
+            .Select(g => (Id: g.Key, Name: g.First().UserName))
+            .OrderBy(x => x.Name)
+            .ToList();
+
+        ApplyFilter();
+    }
+
+    private void OnPoolChanged(Guid? value) { _selectedPool = value; ApplyFilter(); }
+    private void OnUserChanged(Guid? value) { _selectedUser = value; ApplyFilter(); }
+
+    private void ApplyFilter()
+    {
+        _filtered = (_all ?? new())
+            .Where(x => (_selectedPool is null || x.PoolId == _selectedPool)
+                        && (_selectedUser is null || x.UserId == _selectedUser))
+            .ToList();
+    }
+
+    private static string BetLabel(BetLogItemViewModel i)
+    {
+        var oldLabel = i.OldHomeScore.HasValue && i.OldAwayScore.HasValue
+            ? $"{i.OldHomeScore}x{i.OldAwayScore}"
+            : "—";
+        return $"{oldLabel} → {i.NewHomeScore}x{i.NewAwayScore}";
+    }
+}

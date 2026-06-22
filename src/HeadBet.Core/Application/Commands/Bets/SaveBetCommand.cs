@@ -55,6 +55,7 @@ public sealed class SaveBetCommandHandler(
     IPoolMemberRepository memberRepository,
     IMatchRepository matchRepository,
     IBetRepository betRepository,
+    IBetLogRepository betLogRepository,
     IUnitOfWork uow,
     IUserContext userContext,
     IMatchScoringService scoringService) : ICommandHandler<SaveBetCommand, OperationResult>
@@ -87,6 +88,10 @@ public sealed class SaveBetCommandHandler(
         if (match is null)
             return Result.Warning(GenericMessages.INVALID_OPERATION, "Jogo indisponível para palpite (já iniciado, bloqueado ou fora do bolão).");
 
+        var newHome = command.HomeScore!.Value;
+        var newAway = command.AwayScore!.Value;
+        var now = DateTime.UtcNow;
+
         var existingBet = await betRepository.GetAsync(
             b => b.UserId == userId && b.MatchId == command.MatchId,
             @readonly: false,
@@ -94,23 +99,55 @@ public sealed class SaveBetCommandHandler(
 
         if (existingBet is not null)
         {
-            existingBet.HomeScore = command.HomeScore!.Value;
-            existingBet.AwayScore = command.AwayScore!.Value;
+            // Loga (e atualiza) apenas quando o palpite muda de verdade.
+            if (existingBet.HomeScore != newHome || existingBet.AwayScore != newAway)
+            {
+                await betLogRepository.AddAsync(new BetLog
+                {
+                    Id = UIDGen.NewGuid(),
+                    MatchId = command.MatchId,
+                    UserId = userId,
+                    PoolId = command.PoolId,
+                    Action = BetLogAction.Updated,
+                    OldHomeScore = existingBet.HomeScore,
+                    OldAwayScore = existingBet.AwayScore,
+                    NewHomeScore = newHome,
+                    NewAwayScore = newAway,
+                    CreatedAt = now,
+                }, ct);
+
+                existingBet.HomeScore = newHome;
+                existingBet.AwayScore = newAway;
+            }
         }
         else
         {
-            var newBet = new Bet
+            await betRepository.AddAsync(new Bet
             {
                 Id = UIDGen.NewGuid(),
                 MatchId = command.MatchId,
                 UserId = userId,
-                HomeScore = command.HomeScore!.Value,
-                AwayScore = command.AwayScore!.Value,
-                CreatedAt = DateTime.UtcNow,
-            };
-            await betRepository.AddAsync(newBet, ct);
+                HomeScore = newHome,
+                AwayScore = newAway,
+                CreatedAt = now,
+            }, ct);
+
+            await betLogRepository.AddAsync(new BetLog
+            {
+                Id = UIDGen.NewGuid(),
+                MatchId = command.MatchId,
+                UserId = userId,
+                PoolId = command.PoolId,
+                Action = BetLogAction.Created,
+                OldHomeScore = null,
+                OldAwayScore = null,
+                NewHomeScore = newHome,
+                NewAwayScore = newAway,
+                CreatedAt = now,
+            }, ct);
         }
 
+        // Palpite + log no mesmo commit (atômico).
         var saveResult = await uow.SaveChangesAsync(ct);
         if (!saveResult.IsValid)
             return saveResult;
