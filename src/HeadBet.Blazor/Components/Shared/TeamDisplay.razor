@@ -16,14 +16,14 @@
         </span>
         @if (!string.IsNullOrWhiteSpace(FlagUrl))
         {
-            <img class="hb-team-flag" src="@FlagUrl" alt="@Abbreviation" />
+            <img class="hb-team-flag" src="@FlagUrl" alt="@Abbreviation" loading="lazy" decoding="async" />
         }
     }
     else
     {
         @if (!string.IsNullOrWhiteSpace(FlagUrl))
         {
-            <img class="hb-team-flag" src="@FlagUrl" alt="@Abbreviation" />
+            <img class="hb-team-flag" src="@FlagUrl" alt="@Abbreviation" loading="lazy" decoding="async" />
         }
         <span class="hb-team-label">
             @if (!string.IsNullOrWhiteSpace(Abbreviation))
