@@ -26,7 +26,7 @@
     }
 
     <div class="hb-match-line">
-        <TeamDisplay Home="true" Name="@HomeName" Abbreviation="@HomeAbbreviation" FlagUrl="@HomeFlagUrl" />
+        <TeamDisplay Home="true" Name="@HomeName" FlagUrl="@HomeFlagUrl" />
 
         <div class="hb-match-score">
             @if (Editable)
@@ -51,16 +51,14 @@
             }
         </div>
 
-        <TeamDisplay Home="false" Name="@AwayName" Abbreviation="@AwayAbbreviation" FlagUrl="@AwayFlagUrl" />
+        <TeamDisplay Home="false" Name="@AwayName" FlagUrl="@AwayFlagUrl" />
     </div>
 </div>
 
 @code {
     [Parameter] public string HomeName { get; set; } = string.Empty;
-    [Parameter] public string HomeAbbreviation { get; set; } = string.Empty;
     [Parameter] public string HomeFlagUrl { get; set; } = string.Empty;
     [Parameter] public string AwayName { get; set; } = string.Empty;
-    [Parameter] public string AwayAbbreviation { get; set; } = string.Empty;
     [Parameter] public string AwayFlagUrl { get; set; } = string.Empty;
 
     [Parameter] public int? HomeScore { get; set; }

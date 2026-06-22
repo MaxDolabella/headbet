@@ -13,7 +13,7 @@
 }
 else
 {
-    <PageHeader Title="@($"Palpites {_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}")"
+    <PageHeader Title="@($"Palpites {_match.HomeTeamName} x {_match.AwayTeamName}")"
                 Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
         <Actions>
             @if (!string.IsNullOrWhiteSpace(_match.BroadcastUrl))
@@ -40,8 +40,8 @@ else
         }
         <MudCardContent>
             <MatchLine ShowHeader="true" MatchDate="_match.MatchDate" Group="@_match.Group" Round="_match.Round"
-                       HomeName="@_match.HomeTeamName" HomeAbbreviation="@_match.HomeTeamAbbreviation" HomeFlagUrl="@_match.HomeTeamFlagUrl"
-                       AwayName="@_match.AwayTeamName" AwayAbbreviation="@_match.AwayTeamAbbreviation" AwayFlagUrl="@_match.AwayTeamFlagUrl"
+                       HomeName="@_match.HomeTeamName" HomeFlagUrl="@_match.HomeTeamFlagUrl"
+                       AwayName="@_match.AwayTeamName" AwayFlagUrl="@_match.AwayTeamFlagUrl"
                        Editable="_match.CanEditMyBet"
                        HomeScore="@(_match.CanEditMyBet ? _myHome : _match.HomeScore)"
                        AwayScore="@(_match.CanEditMyBet ? _myAway : _match.AwayScore)"
@@ -149,7 +149,7 @@ else
             new("Bolões", "/pools"),
             new(_match.PoolName, $"/pools/{PoolId}"),
             new("Jogos", $"/pools/{PoolId}/matches"),
-            new($"{_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}", null, disabled: true),
+            new($"{_match.HomeTeamName} x {_match.AwayTeamName}", null, disabled: true),
         ];
     }
 

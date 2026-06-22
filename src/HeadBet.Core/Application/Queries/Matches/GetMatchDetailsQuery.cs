@@ -103,10 +103,8 @@ public sealed class GetMatchDetailsQueryHandler(
 
             MatchId = match.Id,
             HomeTeamName = homeTeam?.Name ?? string.Empty,
-            HomeTeamAbbreviation = homeTeam?.Abbreviation ?? string.Empty,
             HomeTeamFlagUrl = homeTeam?.FlagUrl ?? string.Empty,
             AwayTeamName = awayTeam?.Name ?? string.Empty,
-            AwayTeamAbbreviation = awayTeam?.Abbreviation ?? string.Empty,
             AwayTeamFlagUrl = awayTeam?.FlagUrl ?? string.Empty,
             MatchDate = match.MatchDate.ToBrt(),
             HomeScore = match.HomeScore,

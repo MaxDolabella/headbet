@@ -66,8 +66,7 @@ else
                     <PropertyColumn Property="x => x.Round" Title="Rod." HeaderStyle="width:50px" HeaderClass="text-center" CellClass="text-center" />
                     <TemplateColumn Title="Mandante" HeaderClass="text-end">
                         <CellTemplate Context="ctx">
-                            <TeamDisplay Home="true" Name="@ctx.Item.HomeTeamName"
-                                         Abbreviation="@ctx.Item.HomeTeamAbbreviation" FlagUrl="@ctx.Item.HomeTeamFlagUrl" />
+                            <TeamDisplay Home="true" Name="@ctx.Item.HomeTeamName" FlagUrl="@ctx.Item.HomeTeamFlagUrl" />
                         </CellTemplate>
                     </TemplateColumn>
                     <TemplateColumn Title="Placar" HeaderClass="text-center" CellClass="text-center" HeaderStyle="width:80px">
@@ -84,8 +83,7 @@ else
                     </TemplateColumn>
                     <TemplateColumn Title="Visitante" HeaderClass="text-start">
                         <CellTemplate Context="ctx">
-                            <TeamDisplay Home="false" Name="@ctx.Item.AwayTeamName"
-                                         Abbreviation="@ctx.Item.AwayTeamAbbreviation" FlagUrl="@ctx.Item.AwayTeamFlagUrl" />
+                            <TeamDisplay Home="false" Name="@ctx.Item.AwayTeamName" FlagUrl="@ctx.Item.AwayTeamFlagUrl" />
                         </CellTemplate>
                     </TemplateColumn>
                     <PropertyColumn Property="x => x.MatchDate" Title="Data/Hora" Format="dd/MM/yyyy HH:mm" HeaderClass="text-center" CellClass="text-center" />
@@ -161,8 +159,8 @@ else
                         </div>
 
                         <MatchLine Dense="true" ShowHeader="true" MatchDate="m.MatchDate" Round="@((int)m.Round)" Group="@m.Group"
-                                   HomeName="@m.HomeTeamName" HomeAbbreviation="@m.HomeTeamAbbreviation" HomeFlagUrl="@m.HomeTeamFlagUrl"
-                                   AwayName="@m.AwayTeamName" AwayAbbreviation="@m.AwayTeamAbbreviation" AwayFlagUrl="@m.AwayTeamFlagUrl"
+                                   HomeName="@m.HomeTeamName" HomeFlagUrl="@m.HomeTeamFlagUrl"
+                                   AwayName="@m.AwayTeamName" AwayFlagUrl="@m.AwayTeamFlagUrl"
                                    HomeScore="@m.HomeScore" AwayScore="@m.AwayScore" />
 
                         <div class="d-flex flex-wrap mt-2" style="gap:.4rem;">

@@ -91,7 +91,6 @@ html, body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.hb-team-abbr { display: none; }        /* só aparece em telas estreitas */
 .hb-team-flag {
     width: 30px;
     height: 22px;
@@ -100,9 +99,8 @@ html, body {
     flex-shrink: 0;
 }
 
-/* Telas estreitas: fica só o NOME (esconde "(sigla)" e bandeira). */
+/* Telas estreitas: esconde a bandeira, fica só o NOME. */
 @media (max-width: 600px) {
-    .hb-team-sigla,
     .hb-team-flag { display: none; }
 }
 
