@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading.RateLimiting;
 using HeadBet.Blazor.Components;
 using HeadBet.Blazor.Infrastructure.Data;
 using HeadBet.Blazor.Infrastructure.Identity;
@@ -8,7 +9,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.RateLimiting;
 using MudBlazor.Services;
+
+// Nome da política e teto de tentativas por IP/minuto nos endpoints de autenticação.
+const string AUTH_RATE_LIMITER = "auth";
+const int AUTH_PERMIT_LIMIT = 10;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +72,39 @@ builder.Services.AddRazorComponents()
 // --- Antiforgery para endpoints de auth ---
 builder.Services.AddAntiforgery();
 
+// --- Rate limiting nos endpoints de autenticação (anti brute-force de senha e
+//     anti-spam de e-mails de reset). Particionado por IP do cliente — como o
+//     UseForwardedHeaders roda primeiro, RemoteIpAddress já é o IP real atrás do Nginx.
+//     Janela fixa: AUTH_PERMIT_LIMIT tentativas por minuto por IP; o excedente toma 429. ---
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy(AUTH_RATE_LIMITER, http =>
+    {
+        var clientIp = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = AUTH_PERMIT_LIMIT,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+
+    options.OnRejected = async (context, ct) =>
+    {
+        // Tempo REAL até a janela liberar (1..60s), não um chute fixo de 60.
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var ra)
+            ? (int)Math.Ceiling(ra.TotalSeconds)
+            : 60;
+
+        context.HttpContext.Response.Headers.RetryAfter = retryAfter.ToString(CultureInfo.InvariantCulture);
+        if (!context.HttpContext.Response.HasStarted)
+            await context.HttpContext.Response.WriteAsync(
+                $"Muitas tentativas em pouco tempo. Tente de novo em {retryAfter} segundos.", ct);
+    };
+});
+
 var app = builder.Build();
 
 // --- Migrations + seeds ---
@@ -103,16 +142,18 @@ app.UseHttpsRedirection();
 app.MapStaticAssets();
 app.UseRouting();
 
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
 // Endpoints de auth (sign-in/sign-out via MVC pattern, fora do circuito Blazor)
-app.MapPost("/account/sign-in", (Delegate)SignInService.SignInEndpoint).DisableAntiforgery();
+app.MapPost("/account/sign-in", (Delegate)SignInService.SignInEndpoint).DisableAntiforgery().RequireRateLimiting(AUTH_RATE_LIMITER);
 app.MapPost("/account/sign-out", (Delegate)SignInService.SignOutEndpoint).DisableAntiforgery();
-app.MapPost("/account/change-password", (Delegate)PasswordEndpoints.ChangePasswordEndpoint).DisableAntiforgery();
-app.MapPost("/account/forgot-password", (Delegate)PasswordEndpoints.ForgotPasswordEndpoint).DisableAntiforgery();
-app.MapPost("/account/reset-password", (Delegate)PasswordEndpoints.ResetPasswordEndpoint).DisableAntiforgery();
+app.MapPost("/account/change-password", (Delegate)PasswordEndpoints.ChangePasswordEndpoint).DisableAntiforgery().RequireRateLimiting(AUTH_RATE_LIMITER);
+app.MapPost("/account/forgot-password", (Delegate)PasswordEndpoints.ForgotPasswordEndpoint).DisableAntiforgery().RequireRateLimiting(AUTH_RATE_LIMITER);
+app.MapPost("/account/reset-password", (Delegate)PasswordEndpoints.ResetPasswordEndpoint).DisableAntiforgery().RequireRateLimiting(AUTH_RATE_LIMITER);
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
