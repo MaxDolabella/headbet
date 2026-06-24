@@ -14,6 +14,12 @@ public class PoolStatsViewModel
     public List<GameHighlightViewModel> BottomAverage { get; set; } = [];
     public List<ConsensusGroupViewModel> Consensus { get; set; } = [];
 
+    /// <summary>Jogos em que só um cravou o placar exato e todos os outros erraram o resultado.</summary>
+    public List<SoloMatchViewModel> SoloHit { get; set; } = [];
+
+    /// <summary>Jogos em que todos cravaram o placar exato e só um errou o resultado (o contrário).</summary>
+    public List<SoloMatchViewModel> SoloMiss { get; set; } = [];
+
     /// <summary>Participantes distintos com palpite (para o filtro da lista de palpites).</summary>
     public List<string> Users { get; set; } = [];
 }
@@ -48,6 +54,18 @@ public class ConsensusGroupViewModel
     public int RepeatCount { get; set; }  // nº de palpites iguais no placar mais repetido
     public int GameCount { get; set; }    // em quantos jogos esse valor apareceu
     public List<ConsensusGameViewModel> Games { get; set; } = [];
+}
+
+// Jogo "lobo solitário": um participante isolado (cravou sozinho, ou errou sozinho).
+public class SoloMatchViewModel
+{
+    public Guid MatchId { get; set; }
+    public string MatchLabel { get; set; } = string.Empty;
+    public DateTime MatchDate { get; set; } // BRT
+    public string ResultLabel { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;  // o solitário
+    public string BetLabel { get; set; } = string.Empty;  // palpite do solitário
+    public int OthersCount { get; set; }                  // quantos eram os "outros"
 }
 
 // Um jogo dentro de um grupo de consenso.

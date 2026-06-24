@@ -68,6 +68,7 @@ public sealed class GetPoolStatsQueryHandler(
 
         var matchById = matches.ToDictionary(m => m.Id);
         var scoreByKey = scores.ToDictionary(s => (s.MatchId, s.UserId));
+        var betByKey = bets.ToDictionary(b => (b.MatchId, b.UserId));
         var betsByMatch = bets.GroupBy(b => b.MatchId).ToDictionary(g => g.Key, g => g.ToList());
 
         result.HasData = true;
@@ -190,6 +191,45 @@ public sealed class GetPoolStatsQueryHandler(
             .OrderByDescending(x => x.RepeatCount)
             .Take(CONSENSUS_TOP)
             .ToList();
+
+        // --- Bloco 4: "lobo solitário" ---
+        // Considera só quem palpitou (AppliedRule != NoBet). Em cada jogo:
+        //   SoloHit  -> exatamente 1 cravou (ExactScore) e TODOS os outros erraram o resultado (Consolation).
+        //   SoloMiss -> exatamente 1 errou o resultado (Consolation) e TODOS os outros cravaram (ExactScore).
+        SoloMatchViewModel BuildSolo(Match m, MatchUserScore lone, int othersCount) => new()
+        {
+            MatchId = m.Id,
+            MatchLabel = Label(m),
+            MatchDate = m.MatchDate.ToBrt(),
+            ResultLabel = Result(m),
+            UserName = userNames.GetValueOrDefault(lone.UserId, string.Empty),
+            BetLabel = betByKey.TryGetValue((m.Id, lone.UserId), out var b) ? $"{b.HomeScore}x{b.AwayScore}" : "—",
+            OthersCount = othersCount,
+        };
+
+        var scoresByMatch = scores
+            .Where(s => s.AppliedRule != ScoreType.NoBet)
+            .GroupBy(s => s.MatchId)
+            .ToList();
+
+        foreach (var g in scoresByMatch)
+        {
+            var m = matchById[g.Key];
+            var exact = g.Where(s => s.AppliedRule == ScoreType.ExactScore).ToList();
+            var consolation = g.Where(s => s.AppliedRule == ScoreType.Consolation).ToList();
+            var others = g.Count() - 1;
+
+            // Um cravou sozinho e todo o resto caiu na consolação.
+            if (exact.Count == 1 && consolation.Count == others && others >= 1)
+                result.SoloHit.Add(BuildSolo(m, exact[0], others));
+
+            // Todos cravaram e só um errou o resultado.
+            if (consolation.Count == 1 && exact.Count == others && others >= 1)
+                result.SoloMiss.Add(BuildSolo(m, consolation[0], others));
+        }
+
+        result.SoloHit = result.SoloHit.OrderByDescending(x => x.MatchDate).Take(TOP_N).ToList();
+        result.SoloMiss = result.SoloMiss.OrderByDescending(x => x.MatchDate).Take(TOP_N).ToList();
 
         return result;
     }

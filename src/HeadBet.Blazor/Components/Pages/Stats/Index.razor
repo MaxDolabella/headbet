@@ -166,6 +166,48 @@ else
                 }
             }
         </CollapsibleCard>
+
+        @* ---- Lobo solitário: cravou sozinho (colapsável) ---- *@
+        <CollapsibleCard Title="Lobo solitário — cravou sozinho" Icon="@Icons.Material.Filled.MilitaryTech"
+                         Subtitle="Jogos em que só um participante cravou o placar exato e todos os outros erraram o resultado."
+                         Expanded="false" Class="mt-4">
+            @if (_model.SoloHit.Count == 0)
+            {
+                <MudText Class="mud-text-secondary">Nenhum jogo com cravada solitária.</MudText>
+            }
+            else
+            {
+                @foreach (var j in _model.SoloHit)
+                {
+                    <div class="mb-1">
+                        <MudLink Href="@MatchHref(j.MatchId)"><b>@j.MatchLabel</b></MudLink>
+                        <span class="mud-text-secondary">@j.MatchDate.ToString("dd/MM") · resultado @j.ResultLabel</span>
+                        <div class="mud-text-secondary"><b>@j.UserName</b> cravou @j.BetLabel · outros @j.OthersCount erraram</div>
+                    </div>
+                }
+            }
+        </CollapsibleCard>
+
+        @* ---- Lobo solitário: errou sozinho (o contrário) (colapsável) ---- *@
+        <CollapsibleCard Title="Lobo solitário — errou sozinho" Icon="@Icons.Material.Filled.SentimentVeryDissatisfied"
+                         Subtitle="O contrário: jogos em que todos cravaram o placar exato e só um errou o resultado."
+                         Expanded="false" Class="mt-4">
+            @if (_model.SoloMiss.Count == 0)
+            {
+                <MudText Class="mud-text-secondary">Nenhum jogo com erro solitário.</MudText>
+            }
+            else
+            {
+                @foreach (var j in _model.SoloMiss)
+                {
+                    <div class="mb-1">
+                        <MudLink Href="@MatchHref(j.MatchId)"><b>@j.MatchLabel</b></MudLink>
+                        <span class="mud-text-secondary">@j.MatchDate.ToString("dd/MM") · resultado @j.ResultLabel</span>
+                        <div class="mud-text-secondary"><b>@j.UserName</b> errou com @j.BetLabel · outros @j.OthersCount cravaram</div>
+                    </div>
+                }
+            }
+        </CollapsibleCard>
     }
 }
 
