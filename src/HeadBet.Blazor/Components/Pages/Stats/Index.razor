@@ -138,7 +138,7 @@ else
 
         @* ---- Consenso por jogo (colapsável) ---- *@
         <CollapsibleCard Title="Consenso por jogo" Icon="@Icons.Material.Filled.Groups"
-                         Subtitle="Os placares que mais vezes foram o palpite favorito da galera, com os jogos em que dominaram."
+                         Subtitle="Os jogos com mais palpites repetidos num mesmo placar. Mostra os 3 maiores valores de repetição."
                          Expanded="false">
             @if (_model.Consensus.Count == 0)
             {
@@ -150,19 +150,16 @@ else
                 {
                     <div class="@(i > 0 ? "mt-4" : null)">
                         <div class="d-flex align-center mb-1" style="gap:.5rem;">
-                            <MudText Typo="Typo.subtitle1"><b>@(i + 1)º @group.ConsensusLabel</b></MudText>
+                            <MudText Typo="Typo.subtitle1"><b>@(i + 1)º — @group.RepeatCount palpite@(group.RepeatCount == 1 ? "" : "s") iguais</b></MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                consenso em @group.GameCount jogo@(group.GameCount == 1 ? "" : "s") · @group.TotalVotes voto@(group.TotalVotes == 1 ? "" : "s")
+                                em @group.GameCount jogo@(group.GameCount == 1 ? "" : "s")
                             </MudText>
                         </div>
                         @foreach (var jogo in group.Games)
                         {
-                            <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
-                                <span>
-                                    <MudLink Href="@MatchHref(jogo.MatchId)">@jogo.MatchLabel</MudLink>
-                                    <span class="mud-text-secondary">(@jogo.ResultLabel · @jogo.ExactCount cravaram)</span>
-                                </span>
-                                <b>@jogo.Count</b>
+                            <div>
+                                <MudLink Href="@MatchHref(jogo.MatchId)">@jogo.MatchLabel</MudLink>
+                                <span class="mud-text-secondary">— placar @jogo.ConsensusLabel (resultado @jogo.ResultLabel · @jogo.ExactCount cravaram)</span>
                             </div>
                         }
                     </div>

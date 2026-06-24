@@ -146,9 +146,9 @@ public sealed class GetPoolStatsQueryHandler(
             .OrderBy(x => x.Average).ThenBy(x => x.MatchLabel).Take(TOP_N).ToList();
 
         // --- Bloco 3: consenso por jogo ---
-        // Para cada jogo, o "consenso" é o placar mais palpitado e quantos o escolheram.
-        // Em seguida agrupamos por placar: os 3 placares que mais vezes foram consenso,
-        // cada um trazendo os jogos em que dominou.
+        // Para cada jogo, mede o maior nº de palpites iguais num mesmo placar (a repetição).
+        // Depois agrupa por esse valor e mostra os 3 maiores: cada valor traz os jogos onde
+        // a repetição máxima foi exatamente aquela (independente do placar).
         var perGame = betsByMatch
             .Select(kvp =>
             {
@@ -164,33 +164,30 @@ public sealed class GetPoolStatsQueryHandler(
                     ? kvp.Value.Count(b => b.HomeScore == m.HomeScore && b.AwayScore == m.AwayScore)
                     : 0;
 
-                return (top.Label, Game: new ConsensusGameViewModel
+                return (top.Count, Game: new ConsensusGameViewModel
                 {
                     MatchId = m.Id,
                     MatchLabel = Label(m),
                     MatchDate = m.MatchDate.ToBrt(),
                     ResultLabel = Result(m),
-                    Count = top.Count,
+                    ConsensusLabel = top.Label,
                     ExactCount = exact,
                 });
             })
             .ToList();
 
         result.Consensus = perGame
-            .GroupBy(x => x.Label)
+            .GroupBy(x => x.Count)
             .Select(g => new ConsensusGroupViewModel
             {
-                ConsensusLabel = g.Key,
+                RepeatCount = g.Key,
                 GameCount = g.Count(),
-                TotalVotes = g.Sum(x => x.Game.Count),
                 Games = g.Select(x => x.Game)
-                    .OrderByDescending(x => x.Count)
-                    .ThenByDescending(x => x.MatchDate)
+                    .OrderByDescending(x => x.MatchDate)
+                    .ThenBy(x => x.MatchLabel)
                     .ToList(),
             })
-            .OrderByDescending(x => x.GameCount)
-            .ThenByDescending(x => x.TotalVotes)
-            .ThenBy(x => x.ConsensusLabel)
+            .OrderByDescending(x => x.RepeatCount)
             .Take(CONSENSUS_TOP)
             .ToList();
 

@@ -41,12 +41,12 @@ public class GameHighlightViewModel
     public double Average { get; set; }
 }
 
-// Grupo de consenso: um placar que foi o mais palpitado em um ou mais jogos.
+// Grupo de consenso por valor de repetição: jogos cujo placar mais repetido teve
+// exatamente RepeatCount palpites iguais (independente de qual placar foi).
 public class ConsensusGroupViewModel
 {
-    public string ConsensusLabel { get; set; } = string.Empty; // placar "1x0"
-    public int GameCount { get; set; }                         // em quantos jogos foi o consenso
-    public int TotalVotes { get; set; }                        // soma dos votos nesse placar
+    public int RepeatCount { get; set; }  // nº de palpites iguais no placar mais repetido
+    public int GameCount { get; set; }    // em quantos jogos esse valor apareceu
     public List<ConsensusGameViewModel> Games { get; set; } = [];
 }
 
@@ -57,6 +57,6 @@ public class ConsensusGameViewModel
     public string MatchLabel { get; set; } = string.Empty;
     public DateTime MatchDate { get; set; } // BRT
     public string ResultLabel { get; set; } = string.Empty;
-    public int Count { get; set; }      // quantos palpitaram o placar do consenso neste jogo
-    public int ExactCount { get; set; } // quantos cravaram o resultado real
+    public string ConsensusLabel { get; set; } = string.Empty; // placar mais repetido ("3x0")
+    public int ExactCount { get; set; }                        // quantos cravaram o resultado real
 }
