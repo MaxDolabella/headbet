@@ -194,16 +194,6 @@ html, body {
     background-color: rgba(255,255,255,0.06) !important;
 }
 
-/* Linha clicável nos blocos de estatísticas (destaques e consenso). */
-.hb-stat-row {
-    cursor: pointer;
-    padding: 2px 0;
-    transition: color 0.15s;
-}
-.hb-stat-row:hover {
-    color: var(--mud-palette-primary);
-}
-
 /* Topo do card de jogo/palpite: grupo/rodada à esquerda, status à direita. */
 .hb-match-card-top {
     display: flex;

@@ -95,6 +95,13 @@ public sealed class GetPoolStatsQueryHandler(
             .ThenByDescending(x => x.Points)
             .ToList();
 
+        result.Users = result.Bets
+            .Select(b => b.UserName)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+
         // --- Bloco 2: destaques de jogos ---
         // Mais cravadas (nº de ExactScore por jogo).
         result.MostExact = scores
@@ -139,35 +146,52 @@ public sealed class GetPoolStatsQueryHandler(
             .OrderBy(x => x.Average).ThenBy(x => x.MatchLabel).Take(TOP_N).ToList();
 
         // --- Bloco 3: consenso por jogo ---
-        result.Consensus = betsByMatch
+        // Para cada jogo, o "consenso" é o placar mais palpitado e quantos o escolheram.
+        // Em seguida agrupamos por placar: os 3 placares que mais vezes foram consenso,
+        // cada um trazendo os jogos em que dominou.
+        var perGame = betsByMatch
             .Select(kvp =>
             {
                 var m = matchById[kvp.Key];
-                var groups = kvp.Value
+                var top = kvp.Value
                     .GroupBy(b => (b.HomeScore, b.AwayScore))
                     .Select(g => (Label: $"{g.Key.HomeScore}x{g.Key.AwayScore}", Count: g.Count()))
                     .OrderByDescending(g => g.Count)
                     .ThenBy(g => g.Label)
-                    .ToList();
+                    .First();
 
-                var top = groups[0];
                 var exact = m.HomeScore.HasValue && m.AwayScore.HasValue
                     ? kvp.Value.Count(b => b.HomeScore == m.HomeScore && b.AwayScore == m.AwayScore)
                     : 0;
 
-                return new ConsensusRowViewModel
+                return (top.Label, Game: new ConsensusGameViewModel
                 {
                     MatchId = m.Id,
                     MatchLabel = Label(m),
                     MatchDate = m.MatchDate.ToBrt(),
                     ResultLabel = Result(m),
-                    ConsensusLabel = top.Label,
-                    ConsensusCount = top.Count,
+                    Count = top.Count,
                     ExactCount = exact,
-                    TopThree = string.Join(", ", groups.Take(CONSENSUS_TOP).Select(g => $"{g.Label} ({g.Count})")),
-                };
+                });
             })
-            .OrderByDescending(x => x.MatchDate)
+            .ToList();
+
+        result.Consensus = perGame
+            .GroupBy(x => x.Label)
+            .Select(g => new ConsensusGroupViewModel
+            {
+                ConsensusLabel = g.Key,
+                GameCount = g.Count(),
+                TotalVotes = g.Sum(x => x.Game.Count),
+                Games = g.Select(x => x.Game)
+                    .OrderByDescending(x => x.Count)
+                    .ThenByDescending(x => x.MatchDate)
+                    .ToList(),
+            })
+            .OrderByDescending(x => x.GameCount)
+            .ThenByDescending(x => x.TotalVotes)
+            .ThenBy(x => x.ConsensusLabel)
+            .Take(CONSENSUS_TOP)
             .ToList();
 
         return result;

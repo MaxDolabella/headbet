@@ -12,7 +12,10 @@ public class PoolStatsViewModel
     public List<GameHighlightViewModel> MostExact { get; set; } = [];
     public List<GameHighlightViewModel> TopAverage { get; set; } = [];
     public List<GameHighlightViewModel> BottomAverage { get; set; } = [];
-    public List<ConsensusRowViewModel> Consensus { get; set; } = [];
+    public List<ConsensusGroupViewModel> Consensus { get; set; } = [];
+
+    /// <summary>Participantes distintos com palpite (para o filtro da lista de palpites).</summary>
+    public List<string> Users { get; set; } = [];
 }
 
 // Um palpite de jogo finalizado (lista filtrável).
@@ -38,15 +41,22 @@ public class GameHighlightViewModel
     public double Average { get; set; }
 }
 
-// Linha de consenso por jogo.
-public class ConsensusRowViewModel
+// Grupo de consenso: um placar que foi o mais palpitado em um ou mais jogos.
+public class ConsensusGroupViewModel
+{
+    public string ConsensusLabel { get; set; } = string.Empty; // placar "1x0"
+    public int GameCount { get; set; }                         // em quantos jogos foi o consenso
+    public int TotalVotes { get; set; }                        // soma dos votos nesse placar
+    public List<ConsensusGameViewModel> Games { get; set; } = [];
+}
+
+// Um jogo dentro de um grupo de consenso.
+public class ConsensusGameViewModel
 {
     public Guid MatchId { get; set; }
     public string MatchLabel { get; set; } = string.Empty;
     public DateTime MatchDate { get; set; } // BRT
     public string ResultLabel { get; set; } = string.Empty;
-    public string ConsensusLabel { get; set; } = string.Empty; // placar mais palpitado
-    public int ConsensusCount { get; set; }
-    public int ExactCount { get; set; }                        // quantos cravaram
-    public string TopThree { get; set; } = string.Empty;       // "2x1 (4), 1x0 (3), 0x0 (2)"
+    public int Count { get; set; }      // quantos palpitaram o placar do consenso neste jogo
+    public int ExactCount { get; set; } // quantos cravaram o resultado real
 }
