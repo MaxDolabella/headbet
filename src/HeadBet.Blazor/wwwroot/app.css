@@ -99,9 +99,14 @@ html, body {
     flex-shrink: 0;
 }
 
-/* Telas estreitas: esconde a bandeira, fica só o NOME. */
+/* Telas estreitas: empilha a bandeira (em cima) e o nome (embaixo).
+   Mandante alinhado à direita; visitante à esquerda. O bloco fica centralizado
+   verticalmente em relação ao placar via align-items:center do .hb-match-line. */
 @media (max-width: 600px) {
-    .hb-team-flag { display: none; }
+    .hb-team { flex-direction: column; gap: 0.25rem; }
+    .hb-team.home { flex-direction: column-reverse; align-items: flex-end; }
+    .hb-team.away { align-items: flex-start; }
+    .hb-team-label { max-width: 100%; }
 }
 
 /* ===== Componente de jogo (MatchLine) ===== */

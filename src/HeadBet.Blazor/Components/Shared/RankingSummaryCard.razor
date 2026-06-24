@@ -1,11 +1,7 @@
 @* Resumo compacto do ranking para a tela de detalhes do jogo: posição, nome,
    pontos atuais e a variação de posição (chevron verde/vermelho) em relação ao
-   ranking sem os jogos em andamento. *@
-<MudCard Elevation="2">
-    <MudCardHeader><CardHeaderContent>
-        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.Leaderboard" Size="Size.Small" /> Ranking</MudText>
-    </CardHeaderContent></MudCardHeader>
-    <MudCardContent>
+   ranking sem os jogos em andamento. Card colapsável. *@
+<CollapsibleCard Title="Ranking" Icon="@Icons.Material.Filled.Leaderboard" Expanded="Expanded">
         <MudSimpleTable Hover="true" Dense="true" Style="background:transparent;">
             <thead>
                 <tr>
@@ -50,9 +46,11 @@
                 }
             </tbody>
         </MudSimpleTable>
-    </MudCardContent>
-</MudCard>
+</CollapsibleCard>
 
 @code {
     [Parameter, EditorRequired] public List<RankingSummaryItemViewModel> Items { get; set; } = [];
+
+    /// <summary>Inicia expandido (padrão) ou recolhido.</summary>
+    [Parameter] public bool Expanded { get; set; } = true;
 }

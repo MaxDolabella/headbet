@@ -16,15 +16,15 @@ else
     <PageHeader Title="@($"Palpites {_match.HomeTeamName} x {_match.AwayTeamName}")"
                 Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
         <Actions>
-            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ChevronLeft"
-                       Disabled="@(_match.PrevMatchId is null)" OnClick="@(() => GoTo(_match.PrevMatchId))">Anterior</MudButton>
-            <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ChevronRight"
-                       Disabled="@(_match.NextMatchId is null)" OnClick="@(() => GoTo(_match.NextMatchId))">Próximo</MudButton>
             @if (!string.IsNullOrWhiteSpace(_match.BroadcastUrl))
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.LiveTv"
                            Href="@_match.BroadcastUrl" Target="_blank">Transmissão</MudButton>
             }
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ChevronLeft"
+                       Disabled="@(_match.PrevMatchId is null)" OnClick="@(() => GoTo(_match.PrevMatchId))">Anterior</MudButton>
+            <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ChevronRight"
+                       Disabled="@(_match.NextMatchId is null)" OnClick="@(() => GoTo(_match.NextMatchId))">Próximo</MudButton>
             @if (_match.IsAdmin)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
