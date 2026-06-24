@@ -167,47 +167,41 @@ else
             }
         </CollapsibleCard>
 
-        @* ---- Lobo solitário: cravou sozinho (colapsável) ---- *@
-        <CollapsibleCard Title="Lobo solitário — cravou sozinho" Icon="@Icons.Material.Filled.MilitaryTech"
-                         Subtitle="Jogos em que só um participante cravou o placar exato e todos os outros erraram o resultado."
-                         Expanded="false" Class="mt-4">
-            @if (_model.SoloHit.Count == 0)
-            {
-                <MudText Class="mud-text-secondary">Nenhum jogo com cravada solitária.</MudText>
-            }
-            else
-            {
-                @foreach (var j in _model.SoloHit)
-                {
-                    <div class="mb-1">
-                        <MudLink Href="@MatchHref(j.MatchId)"><b>@j.MatchLabel</b></MudLink>
-                        <span class="mud-text-secondary">@j.MatchDate.ToString("dd/MM") · resultado @j.ResultLabel</span>
-                        <div class="mud-text-secondary"><b>@j.UserName</b> cravou @j.BetLabel · outros @j.OthersCount erraram</div>
-                    </div>
-                }
-            }
-        </CollapsibleCard>
+        @* ---- Lobo solitário: cravou (estrita | flexível) ---- *@
+        <MudGrid Class="mt-1">
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Lobo solitário — cravou sozinho" Icon="@Icons.Material.Filled.MilitaryTech"
+                                 Subtitle="Só um cravou o placar exato e todos os outros erraram o resultado."
+                                 Expanded="false">
+                    @SoloList(_model.SoloHit, "Nenhum jogo com cravada solitária.", "cravou", "erraram")
+                </CollapsibleCard>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Acertou sozinho" Icon="@Icons.Material.Filled.GpsFixed"
+                                 Subtitle="Só um cravou o placar exato — não importa o que os outros fizeram."
+                                 Expanded="false">
+                    @SoloList(_model.SoloHitLoose, "Nenhum acerto solitário.", "cravou", "não cravaram")
+                </CollapsibleCard>
+            </MudItem>
+        </MudGrid>
 
-        @* ---- Lobo solitário: errou sozinho (o contrário) (colapsável) ---- *@
-        <CollapsibleCard Title="Lobo solitário — errou sozinho" Icon="@Icons.Material.Filled.SentimentVeryDissatisfied"
-                         Subtitle="O contrário: jogos em que todos cravaram o placar exato e só um errou o resultado."
-                         Expanded="false" Class="mt-4">
-            @if (_model.SoloMiss.Count == 0)
-            {
-                <MudText Class="mud-text-secondary">Nenhum jogo com erro solitário.</MudText>
-            }
-            else
-            {
-                @foreach (var j in _model.SoloMiss)
-                {
-                    <div class="mb-1">
-                        <MudLink Href="@MatchHref(j.MatchId)"><b>@j.MatchLabel</b></MudLink>
-                        <span class="mud-text-secondary">@j.MatchDate.ToString("dd/MM") · resultado @j.ResultLabel</span>
-                        <div class="mud-text-secondary"><b>@j.UserName</b> errou com @j.BetLabel · outros @j.OthersCount cravaram</div>
-                    </div>
-                }
-            }
-        </CollapsibleCard>
+        @* ---- Lobo solitário: errou (estrita | flexível) ---- *@
+        <MudGrid Class="mt-1">
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Lobo solitário — errou sozinho" Icon="@Icons.Material.Filled.SentimentVeryDissatisfied"
+                                 Subtitle="Todos cravaram o placar exato e só um errou o resultado."
+                                 Expanded="false">
+                    @SoloList(_model.SoloMiss, "Nenhum jogo com erro solitário.", "errou com", "cravaram")
+                </CollapsibleCard>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Errou sozinho" Icon="@Icons.Material.Filled.PersonOff"
+                                 Subtitle="Só um errou o resultado e os outros acertaram ao menos parcialmente (ignora quem não palpitou)."
+                                 Expanded="false">
+                    @SoloList(_model.SoloMissLoose, "Nenhum erro solitário.", "errou com", "acertaram ao menos parcial")
+                </CollapsibleCard>
+            </MudItem>
+        </MudGrid>
     }
 }
 
@@ -249,6 +243,27 @@ else
     private void Consultar() => _consulted = true;
 
     private string MatchHref(Guid matchId) => $"/pools/{PoolId}/matches/{matchId}";
+
+    // Lista de jogos "lobo solitário". soloVerb descreve o palpite do solitário
+    // ("cravou" / "errou com") e othersText descreve o que os outros fizeram.
+    private RenderFragment SoloList(List<SoloMatchViewModel> items, string emptyText, string soloVerb, string othersText) => __builder =>
+    {
+        if (items.Count == 0)
+        {
+            <MudText Class="mud-text-secondary">@emptyText</MudText>
+        }
+        else
+        {
+            @foreach (var j in items)
+            {
+                <div class="mb-1">
+                    <MudLink Href="@MatchHref(j.MatchId)"><b>@j.MatchLabel</b></MudLink>
+                    <span class="mud-text-secondary">@j.MatchDate.ToString("dd/MM") · resultado @j.ResultLabel</span>
+                    <div class="mud-text-secondary"><b>@j.UserName</b> @soloVerb @j.BetLabel · outros @j.OthersCount @othersText</div>
+                </div>
+            }
+        }
+    };
 
     private static string TypeLabel(ScoreType t) => t switch
     {

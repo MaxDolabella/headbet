@@ -219,17 +219,31 @@ public sealed class GetPoolStatsQueryHandler(
             var consolation = g.Where(s => s.AppliedRule == ScoreType.Consolation).ToList();
             var others = g.Count() - 1;
 
-            // Um cravou sozinho e todo o resto caiu na consolação.
-            if (exact.Count == 1 && consolation.Count == others && others >= 1)
-                result.SoloHit.Add(BuildSolo(m, exact[0], others));
+            // Só um cravou (independente dos outros).
+            if (exact.Count == 1 && others >= 1)
+            {
+                result.SoloHitLoose.Add(BuildSolo(m, exact[0], others));
 
-            // Todos cravaram e só um errou o resultado.
-            if (consolation.Count == 1 && exact.Count == others && others >= 1)
-                result.SoloMiss.Add(BuildSolo(m, consolation[0], others));
+                // Versão estrita: todo o resto caiu na consolação.
+                if (consolation.Count == others)
+                    result.SoloHit.Add(BuildSolo(m, exact[0], others));
+            }
+
+            // Só um errou o resultado (os outros acertaram ao menos parcialmente, pois bettors exclui NoBet).
+            if (consolation.Count == 1 && others >= 1)
+            {
+                result.SoloMissLoose.Add(BuildSolo(m, consolation[0], others));
+
+                // Versão estrita: todo o resto cravou.
+                if (exact.Count == others)
+                    result.SoloMiss.Add(BuildSolo(m, consolation[0], others));
+            }
         }
 
         result.SoloHit = result.SoloHit.OrderByDescending(x => x.MatchDate).Take(TOP_N).ToList();
+        result.SoloHitLoose = result.SoloHitLoose.OrderByDescending(x => x.MatchDate).Take(TOP_N).ToList();
         result.SoloMiss = result.SoloMiss.OrderByDescending(x => x.MatchDate).Take(TOP_N).ToList();
+        result.SoloMissLoose = result.SoloMissLoose.OrderByDescending(x => x.MatchDate).Take(TOP_N).ToList();
 
         return result;
     }

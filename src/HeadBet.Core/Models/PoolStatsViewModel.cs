@@ -17,8 +17,14 @@ public class PoolStatsViewModel
     /// <summary>Jogos em que só um cravou o placar exato e todos os outros erraram o resultado.</summary>
     public List<SoloMatchViewModel> SoloHit { get; set; } = [];
 
+    /// <summary>Jogos em que só um cravou o placar exato, independente do que os outros fizeram.</summary>
+    public List<SoloMatchViewModel> SoloHitLoose { get; set; } = [];
+
     /// <summary>Jogos em que todos cravaram o placar exato e só um errou o resultado (o contrário).</summary>
     public List<SoloMatchViewModel> SoloMiss { get; set; } = [];
+
+    /// <summary>Jogos em que só um errou o resultado e os outros acertaram ao menos parcialmente (ignora quem não palpitou).</summary>
+    public List<SoloMatchViewModel> SoloMissLoose { get; set; } = [];
 
     /// <summary>Participantes distintos com palpite (para o filtro da lista de palpites).</summary>
     public List<string> Users { get; set; } = [];
