@@ -13,7 +13,7 @@
 }
 else
 {
-    <PageHeader Title="@($"Palpites {_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}")"
+    <PageHeader Title="@($"Palpites {_match.HomeTeamName} x {_match.AwayTeamName}")"
                 Icon="@Icons.Material.Filled.Casino" Breadcrumbs="@_crumbs" HelpAnchor="jogos">
         <Actions>
             @if (!string.IsNullOrWhiteSpace(_match.BroadcastUrl))
@@ -21,6 +21,10 @@ else
                 <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.LiveTv"
                            Href="@_match.BroadcastUrl" Target="_blank">Transmissão</MudButton>
             }
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ChevronLeft"
+                       Disabled="@(_match.PrevMatchId is null)" OnClick="@(() => GoTo(_match.PrevMatchId))">Anterior</MudButton>
+            <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ChevronRight"
+                       Disabled="@(_match.NextMatchId is null)" OnClick="@(() => GoTo(_match.NextMatchId))">Próximo</MudButton>
             @if (_match.IsAdmin)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.SportsSoccer"
@@ -40,8 +44,8 @@ else
         }
         <MudCardContent>
             <MatchLine ShowHeader="true" MatchDate="_match.MatchDate" Group="@_match.Group" Round="_match.Round"
-                       HomeName="@_match.HomeTeamName" HomeAbbreviation="@_match.HomeTeamAbbreviation" HomeFlagUrl="@_match.HomeTeamFlagUrl"
-                       AwayName="@_match.AwayTeamName" AwayAbbreviation="@_match.AwayTeamAbbreviation" AwayFlagUrl="@_match.AwayTeamFlagUrl"
+                       HomeName="@_match.HomeTeamName" HomeFlagUrl="@_match.HomeTeamFlagUrl"
+                       AwayName="@_match.AwayTeamName" AwayFlagUrl="@_match.AwayTeamFlagUrl"
                        Editable="_match.CanEditMyBet"
                        HomeScore="@(_match.CanEditMyBet ? _myHome : _match.HomeScore)"
                        AwayScore="@(_match.CanEditMyBet ? _myAway : _match.AwayScore)"
@@ -132,7 +136,20 @@ else
     private List<RankingSummaryItemViewModel> _ranking = new();
     private List<BreadcrumbItem> _crumbs = new();
 
-    protected override async Task OnInitializedAsync()
+    private Guid _loadedId;
+
+    // Navegar entre jogos é a mesma página com outro Id de rota: o componente é reusado e
+    // OnInitializedAsync NÃO roda de novo. Carregamos em OnParametersSetAsync, com guard por Id.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id == _loadedId)
+            return;
+        _loadedId = Id;
+        _match = null; // mostra o spinner ao trocar de jogo
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
     {
         _match = await Bus.SendAsync(new GetMatchDetailsQuery(PoolId, Id));
         if (_match is null)
@@ -149,8 +166,14 @@ else
             new("Bolões", "/pools"),
             new(_match.PoolName, $"/pools/{PoolId}"),
             new("Jogos", $"/pools/{PoolId}/matches"),
-            new($"{_match.HomeTeamAbbreviation} x {_match.AwayTeamAbbreviation}", null, disabled: true),
+            new($"{_match.HomeTeamName} x {_match.AwayTeamName}", null, disabled: true),
         ];
+    }
+
+    private void GoTo(Guid? matchId)
+    {
+        if (matchId is { } id)
+            Nav.NavigateTo($"/pools/{PoolId}/matches/{id}");
     }
 
     private async Task SaveBet()

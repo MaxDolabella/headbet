@@ -10,6 +10,10 @@
                 }
                 @Title
             </MudText>
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Subtitle</MudText>
+            }
         </CardHeaderContent>
         <CardHeaderActions>
             <MudIcon Icon="@(_expanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" />
@@ -24,6 +28,7 @@
 
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
     [Parameter] public string? Icon { get; set; }
     [Parameter] public bool Expanded { get; set; } = true;
     [Parameter] public string? Class { get; set; }

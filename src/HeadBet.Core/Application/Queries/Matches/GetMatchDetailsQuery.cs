@@ -41,6 +41,16 @@ public sealed class GetMatchDetailsQueryHandler(
         if (match is null)
             return null;
 
+        // Vizinhos para navegação anterior/seguinte: jogos do bolão ordenados por data
+        // (desempate por Id para ordem estável). Null nas pontas.
+        var poolMatches = (await matchRepository.ToListAsync(
+                m => m.PoolId == query.PoolId, @readonly: true, ct))
+            .OrderBy(m => m.MatchDate).ThenBy(m => m.Id)
+            .ToList();
+        var idx = poolMatches.FindIndex(m => m.Id == match.Id);
+        var prevMatchId = idx > 0 ? poolMatches[idx - 1].Id : (Guid?)null;
+        var nextMatchId = idx >= 0 && idx < poolMatches.Count - 1 ? poolMatches[idx + 1].Id : (Guid?)null;
+
         var teams = await teamRepository.ToListAsync(
             t => t.Id == match.HomeTeamId || t.Id == match.AwayTeamId, @readonly: true, ct);
 
@@ -102,11 +112,11 @@ public sealed class GetMatchDetailsQueryHandler(
             IsAdmin = me?.Role == PoolMemberRole.Admin,
 
             MatchId = match.Id,
+            PrevMatchId = prevMatchId,
+            NextMatchId = nextMatchId,
             HomeTeamName = homeTeam?.Name ?? string.Empty,
-            HomeTeamAbbreviation = homeTeam?.Abbreviation ?? string.Empty,
             HomeTeamFlagUrl = homeTeam?.FlagUrl ?? string.Empty,
             AwayTeamName = awayTeam?.Name ?? string.Empty,
-            AwayTeamAbbreviation = awayTeam?.Abbreviation ?? string.Empty,
             AwayTeamFlagUrl = awayTeam?.FlagUrl ?? string.Empty,
             MatchDate = match.MatchDate.ToBrt(),
             HomeScore = match.HomeScore,

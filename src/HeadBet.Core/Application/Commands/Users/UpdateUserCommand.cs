@@ -62,11 +62,17 @@ public sealed class UpdateUserCommandValidator : AbstractValidator<UpdateUserCom
 // --- Handler ---
 public sealed class UpdateUserCommandHandler(
     IUserRepository repository,
+    IUserContext userContext,
     IUnitOfWork uow,
     IPasswordHasher hasher) : ICommandHandler<UpdateUserCommand, OperationResult>
 {
     public async Task<OperationResult> HandleAsync(UpdateUserCommand command, CancellationToken ct)
     {
+        // Defesa em profundidade: a página exige [Authorize(Roles=ADMIN)], mas o handler
+        // não pode confiar só nisso — revalida o papel server-side.
+        if (!userContext.IsAdmin)
+            return Result.Warning(GenericMessages.INVALID_OPERATION, "Acesso negado.");
+
         var entity = await repository.GetAsync(e => e.Id == command.Id, @readonly: false, ct);
         if (entity is null)
             return Result.Warning(GenericMessages.ITEM_NOT_FOUND, "Usuário não encontrado.");

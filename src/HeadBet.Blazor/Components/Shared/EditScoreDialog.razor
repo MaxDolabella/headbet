@@ -14,8 +14,8 @@
         else
         {
             <MatchLine ShowHeader="true" MatchDate="_model.MatchDate" Group="@_model.Group" Round="_model.Round"
-                       HomeName="@_model.HomeTeamName" HomeAbbreviation="@_model.HomeTeamAbbreviation" HomeFlagUrl="@_model.HomeTeamFlagUrl"
-                       AwayName="@_model.AwayTeamName" AwayAbbreviation="@_model.AwayTeamAbbreviation" AwayFlagUrl="@_model.AwayTeamFlagUrl"
+                       HomeName="@_model.HomeTeamName" HomeFlagUrl="@_model.HomeTeamFlagUrl"
+                       AwayName="@_model.AwayTeamName" AwayFlagUrl="@_model.AwayTeamFlagUrl"
                        Editable="@(!_isFinished)" Max="50" @bind-HomeScore="_model.HomeScore" @bind-AwayScore="_model.AwayScore" />
 
             @if (_isFinished)

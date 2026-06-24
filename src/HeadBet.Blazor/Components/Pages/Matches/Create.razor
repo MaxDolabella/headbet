@@ -35,10 +35,10 @@ else
     <MudPaper Elevation="2" Class="pa-6" Style="max-width:680px;">
         <MudStack Spacing="3">
             <MudSelect T="Guid" @bind-Value="_model.HomeTeamId" Label="Time mandante" Variant="Variant.Outlined">
-                @foreach (var t in _teams) { <MudSelectItem Value="@t.Id">@t.Abbreviation — @t.Name</MudSelectItem> }
+                @foreach (var t in _teams) { <MudSelectItem Value="@t.Id">@t.Name</MudSelectItem> }
             </MudSelect>
             <MudSelect T="Guid" @bind-Value="_model.AwayTeamId" Label="Time visitante" Variant="Variant.Outlined">
-                @foreach (var t in _teams) { <MudSelectItem Value="@t.Id">@t.Abbreviation — @t.Name</MudSelectItem> }
+                @foreach (var t in _teams) { <MudSelectItem Value="@t.Id">@t.Name</MudSelectItem> }
             </MudSelect>
             <MudDatePicker @bind-Date="_date" Label="Data" Variant="Variant.Outlined" />
             <MudTimePicker @bind-Time="_time" Label="Hora" Variant="Variant.Outlined" />

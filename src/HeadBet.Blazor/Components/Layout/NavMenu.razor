@@ -15,6 +15,7 @@
                 <MudNavLink Href="@($"/pools/{poolId}/matches")" Icon="@Icons.Material.Filled.SportsSoccer" Match="NavLinkMatch.Prefix">Jogos</MudNavLink>
                 <MudNavLink Href="@($"/pools/{poolId}/bets")" Icon="@Icons.Material.Filled.Casino" Match="NavLinkMatch.Prefix">Palpites</MudNavLink>
                 <MudNavLink Href="@($"/pools/{poolId}/ranking")" Icon="@Icons.Material.Filled.BarChart" Match="NavLinkMatch.Prefix">Ranking</MudNavLink>
+                <MudNavLink Href="@($"/pools/{poolId}/stats")" Icon="@Icons.Material.Filled.Insights" Match="NavLinkMatch.Prefix">Estatísticas</MudNavLink>
                 @if (_adminNav?.IsAdmin == true)
                 {
                     <MudNavLink Href="@($"/pools/{poolId}/members")" Icon="@Icons.Material.Filled.People" Match="NavLinkMatch.Prefix">
@@ -40,6 +41,7 @@
                 <MudText Typo="Typo.overline" Class="px-4 mud-text-secondary">Administração</MudText>
                 <MudNavLink Href="/ai-models" Icon="@Icons.Material.Filled.SmartToy">Modelos de IA</MudNavLink>
                 <MudNavLink Href="/users" Icon="@Icons.Material.Filled.People">Usuários</MudNavLink>
+                <MudNavLink Href="/admin/bet-logs" Icon="@Icons.Material.Filled.History">Log de palpites</MudNavLink>
                 <MudNavLink Href="/admin/sql" Icon="@Icons.Material.Filled.Terminal">Console SQL</MudNavLink>
             </AuthorizeView>
 

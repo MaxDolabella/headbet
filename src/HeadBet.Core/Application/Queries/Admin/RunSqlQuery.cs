@@ -39,8 +39,9 @@ public sealed class RunSqlQueryHandler(
             return vm;
         }
 
-        logger.LogWarning("SQL console (consulta) por {User} <{Email}>: {Sql}",
-            userContext.Name, userContext.Email, query.Sql);
+        logger.LogWarning("SQL console (consulta) por {User} <{Email}> — {Chars} chars / {Bytes} bytes: {Sql}",
+            userContext.Name, userContext.Email, query.Sql.Length,
+            System.Text.Encoding.UTF8.GetByteCount(query.Sql), query.Sql);
 
         var connection = db.Database.GetDbConnection();
         var openedHere = connection.State != ConnectionState.Open;
@@ -77,8 +78,8 @@ public sealed class RunSqlQueryHandler(
         }
         catch (Exception ex)
         {
-            vm.Error = ex.Message;
-            logger.LogError(ex, "Erro no SQL console (consulta).");
+            vm.Error = Flatten(ex);
+            logger.LogError(ex, "Erro no SQL console (consulta). Detalhe: {Detail}", vm.Error);
         }
         finally
         {
@@ -89,5 +90,14 @@ public sealed class RunSqlQueryHandler(
         }
 
         return vm;
+    }
+
+    // Achata Message + todas as InnerException numa única string legível.
+    private static string Flatten(Exception ex)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (var e = ex; e is not null; e = e.InnerException)
+            sb.Append(e.GetType().Name).Append(": ").AppendLine(e.Message);
+        return sb.ToString().TrimEnd();
     }
 }

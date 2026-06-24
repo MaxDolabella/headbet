@@ -1,0 +1,278 @@
+@page "/pools/{PoolId:guid}/stats"
+@attribute [AllowAnonymous]
+@inject IBus Bus
+@inject NavigationManager Nav
+
+<PageTitle>Estatísticas — HeadBet</PageTitle>
+
+@if (_model is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <PageHeader Title="@($"Estatísticas — {_model.PoolName}")" Icon="@Icons.Material.Filled.Insights" Breadcrumbs="@_crumbs" HelpAnchor="ranking">
+        <Actions>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="@($"/pools/{PoolId}")">Voltar</MudButton>
+        </Actions>
+    </PageHeader>
+
+    @if (!_model.HasData)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Ainda não há jogos finalizados neste bolão.</MudAlert>
+    }
+    else
+    {
+        @* ---- Destaques de jogos ---- *@
+        <MudGrid Class="mb-2">
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Style="height:100%;">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.GpsFixed" Size="Size.Small" /> Mais cravadas</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Jogos com mais placares exatos acertados pelos participantes.</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        @if (_model.MostExact.Count == 0)
+                        {
+                            <MudText Class="mud-text-secondary">Nenhum placar exato ainda.</MudText>
+                        }
+                        else
+                        {
+                            @foreach (var (g, i) in _model.MostExact.Select((g, i) => (g, i)))
+                            {
+                                <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
+                                    <span><b>@(i + 1)º</b> <MudLink Href="@MatchHref(g.MatchId)">@g.MatchLabel</MudLink> <span class="mud-text-secondary">(@g.ResultLabel)</span></span>
+                                    <b>@g.Count</b>
+                                </div>
+                            }
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Style="height:100%;">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" /> Maior média</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Jogos em que os participantes mais pontuaram, em média.</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        @foreach (var (g, i) in _model.TopAverage.Select((g, i) => (g, i)))
+                        {
+                            <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
+                                <span><b>@(i + 1)º</b> <MudLink Href="@MatchHref(g.MatchId)">@g.MatchLabel</MudLink> <span class="mud-text-secondary">(@g.ResultLabel)</span></span>
+                                <b>@g.Average.ToString("0.0")</b>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Style="height:100%;">
+                    <MudCardHeader><CardHeaderContent>
+                        <MudText Typo="Typo.h6"><MudIcon Icon="@Icons.Material.Filled.TrendingDown" Size="Size.Small" /> Zebra (menor média)</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Jogos que mais surpreenderam — menor média de pontos.</MudText>
+                    </CardHeaderContent></MudCardHeader>
+                    <MudCardContent>
+                        @foreach (var (g, i) in _model.BottomAverage.Select((g, i) => (g, i)))
+                        {
+                            <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
+                                <span><b>@(i + 1)º</b> <MudLink Href="@MatchHref(g.MatchId)">@g.MatchLabel</MudLink> <span class="mud-text-secondary">(@g.ResultLabel)</span></span>
+                                <b>@g.Average.ToString("0.0")</b>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        @* ---- Lista de palpites (colapsável, com consulta sob demanda) ---- *@
+        <CollapsibleCard Title="Palpites" Icon="@Icons.Material.Filled.Casino"
+                         Subtitle="Filtre os palpites de jogos finalizados por participante e tipo de acerto, depois clique em Consultar."
+                         Expanded="false" Class="mb-4">
+            <div class="d-flex flex-wrap align-center mb-3" style="gap:.75rem;">
+                <MudSelect T="string" Value="_selectedUser" ValueChanged="OnUserChanged" Label="Participante" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:220px;">
+                    <MudSelectItem T="string" Value="@(null as string)">Todos</MudSelectItem>
+                    @foreach (var u in _model.Users)
+                    {
+                        <MudSelectItem T="string" Value="@u">@u</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="ScoreType?" Value="_selectedType" ValueChanged="OnTypeChanged" Label="Tipo de acerto" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:240px;">
+                    <MudSelectItem T="ScoreType?" Value="@(null as ScoreType?)">Todos</MudSelectItem>
+                    @foreach (var t in _typeOptions)
+                    {
+                        <MudSelectItem T="ScoreType?" Value="@t">@TypeLabel(t)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
+                           OnClick="Consultar">Consultar</MudButton>
+            </div>
+
+            @if (_consulted)
+            {
+                var bets = FilteredBets.ToList();
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@bets.Count palpite@(bets.Count == 1 ? "" : "s")</MudText>
+                @foreach (var item in bets)
+                {
+                    <MudPaper Elevation="0" Outlined="true" Class="pa-2 mb-1">
+                        <div class="d-flex justify-space-between align-center" style="gap:.5rem;">
+                            <div style="min-width:0;">
+                                <div class="text-truncate">
+                                    <MudLink Href="@MatchHref(item.MatchId)"><b>@item.MatchLabel</b></MudLink>
+                                    <span class="mud-text-secondary">@item.MatchDate.ToString("dd/MM")</span>
+                                </div>
+                                <div class="mud-text-secondary">@item.UserName — palpite <b>@item.BetLabel</b> · resultado <b>@item.ResultLabel</b></div>
+                            </div>
+                            <PointsBadge Type="item.AppliedRule" Points="item.Points" />
+                        </div>
+                    </MudPaper>
+                }
+                @if (bets.Count == 0)
+                {
+                    <MudText Class="mud-text-secondary">Nenhum palpite para este filtro.</MudText>
+                }
+            }
+        </CollapsibleCard>
+
+        @* ---- Consenso por jogo (colapsável) ---- *@
+        <CollapsibleCard Title="Consenso por jogo" Icon="@Icons.Material.Filled.Groups"
+                         Subtitle="Os jogos com mais palpites repetidos num mesmo placar. Mostra os 3 maiores valores de repetição."
+                         Expanded="false">
+            @if (_model.Consensus.Count == 0)
+            {
+                <MudText Class="mud-text-secondary">Sem dados de consenso.</MudText>
+            }
+            else
+            {
+                @foreach (var (group, i) in _model.Consensus.Select((g, i) => (g, i)))
+                {
+                    <div class="@(i > 0 ? "mt-4" : null)">
+                        <div class="d-flex align-center mb-1" style="gap:.5rem;">
+                            <MudText Typo="Typo.subtitle1"><b>@(i + 1)º — @group.RepeatCount palpite@(group.RepeatCount == 1 ? "" : "s") iguais</b></MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                em @group.GameCount jogo@(group.GameCount == 1 ? "" : "s")
+                            </MudText>
+                        </div>
+                        @foreach (var jogo in group.Games)
+                        {
+                            <div>
+                                <MudLink Href="@MatchHref(jogo.MatchId)">@jogo.MatchLabel</MudLink>
+                                <span class="mud-text-secondary">— placar @jogo.ConsensusLabel (resultado @jogo.ResultLabel · @jogo.ExactCount cravaram)</span>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </CollapsibleCard>
+
+        @* ---- Lobo solitário: cravou (estrita | flexível) ---- *@
+        <MudGrid Class="mt-1">
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Lobo solitário — cravou sozinho" Icon="@Icons.Material.Filled.MilitaryTech"
+                                 Subtitle="Só um cravou o placar exato e todos os outros erraram o resultado."
+                                 Expanded="false">
+                    @SoloList(_model.SoloHit, "Nenhum jogo com cravada solitária.", "cravou", "erraram")
+                </CollapsibleCard>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Acertou sozinho" Icon="@Icons.Material.Filled.GpsFixed"
+                                 Subtitle="Só um cravou o placar exato — não importa o que os outros fizeram."
+                                 Expanded="false">
+                    @SoloList(_model.SoloHitLoose, "Nenhum acerto solitário.", "cravou", "não cravaram")
+                </CollapsibleCard>
+            </MudItem>
+        </MudGrid>
+
+        @* ---- Lobo solitário: errou (estrita | flexível) ---- *@
+        <MudGrid Class="mt-1">
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Lobo solitário — errou sozinho" Icon="@Icons.Material.Filled.SentimentVeryDissatisfied"
+                                 Subtitle="Todos cravaram o placar exato e só um errou o resultado."
+                                 Expanded="false">
+                    @SoloList(_model.SoloMiss, "Nenhum jogo com erro solitário.", "errou com", "cravaram")
+                </CollapsibleCard>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <CollapsibleCard Title="Errou sozinho" Icon="@Icons.Material.Filled.PersonOff"
+                                 Subtitle="Só um errou o resultado e os outros acertaram ao menos parcialmente (ignora quem não palpitou)."
+                                 Expanded="false">
+                    @SoloList(_model.SoloMissLoose, "Nenhum erro solitário.", "errou com", "acertaram ao menos parcial")
+                </CollapsibleCard>
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    [Parameter] public Guid PoolId { get; set; }
+
+    private PoolStatsViewModel? _model;
+    private List<ScoreType> _typeOptions = new();
+    private ScoreType? _selectedType;
+    private string? _selectedUser;
+    private bool _consulted;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    private IEnumerable<StatBetItemViewModel> FilteredBets =>
+        _model!.Bets
+            .Where(b => _selectedType is null || b.AppliedRule == _selectedType)
+            .Where(b => _selectedUser is null || b.UserName == _selectedUser);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = await Bus.SendAsync(new GetPoolStatsQuery(PoolId));
+        if (_model is null) { Nav.NavigateTo("/pools"); return; }
+
+        _typeOptions = PoolRankingViewModel.BreakdownOrder
+            .Where(t => _model.Bets.Any(b => b.AppliedRule == t))
+            .ToList();
+
+        _crumbs =
+        [
+            new("Home", "/"),
+            new("Bolões", "/pools"),
+            new(_model.PoolName, $"/pools/{PoolId}"),
+            new("Estatísticas", null, disabled: true),
+        ];
+    }
+
+    private void OnTypeChanged(ScoreType? value) => _selectedType = value;
+    private void OnUserChanged(string? value) => _selectedUser = value;
+    private void Consultar() => _consulted = true;
+
+    private string MatchHref(Guid matchId) => $"/pools/{PoolId}/matches/{matchId}";
+
+    // Lista de jogos "lobo solitário". soloVerb descreve o palpite do solitário
+    // ("cravou" / "errou com") e othersText descreve o que os outros fizeram.
+    private RenderFragment SoloList(List<SoloMatchViewModel> items, string emptyText, string soloVerb, string othersText) => __builder =>
+    {
+        if (items.Count == 0)
+        {
+            <MudText Class="mud-text-secondary">@emptyText</MudText>
+        }
+        else
+        {
+            @foreach (var j in items)
+            {
+                <div class="mb-1">
+                    <MudLink Href="@MatchHref(j.MatchId)"><b>@j.MatchLabel</b></MudLink>
+                    <span class="mud-text-secondary">@j.MatchDate.ToString("dd/MM") · resultado @j.ResultLabel</span>
+                    <div class="mud-text-secondary"><b>@j.UserName</b> @soloVerb @j.BetLabel · outros @j.OthersCount @othersText</div>
+                </div>
+            }
+        }
+    };
+
+    private static string TypeLabel(ScoreType t) => t switch
+    {
+        ScoreType.ExactScore => "Placar exato",
+        ScoreType.WinnerAndWinnerGoals => "Vencedor + gols do vencedor",
+        ScoreType.WinnerAndDifference => "Vencedor + diferença / empate",
+        ScoreType.WinnerAndLoserGoals => "Vencedor + gols do perdedor",
+        ScoreType.WinnerOnly => "Apenas vencedor",
+        ScoreType.Consolation => "Consolação",
+        _ => t.ToString(),
+    };
+}

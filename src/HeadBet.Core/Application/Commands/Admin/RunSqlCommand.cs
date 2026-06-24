@@ -45,8 +45,9 @@ public sealed class RunSqlCommandHandler(
         if (!userContext.IsAdmin)
             return Result.Warning<SqlConsoleResultViewModel>(GenericMessages.INVALID_OPERATION, "Acesso negado.");
 
-        logger.LogWarning("SQL console (escrita) por {User} <{Email}>: {Sql}",
-            userContext.Name, userContext.Email, command.Sql);
+        var bytes = System.Text.Encoding.UTF8.GetByteCount(command.Sql);
+        logger.LogWarning("SQL console (escrita) por {User} <{Email}> — {Chars} chars / {Bytes} bytes: {Sql}",
+            userContext.Name, userContext.Email, command.Sql.Length, bytes, command.Sql);
 
         var sw = Stopwatch.StartNew();
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -66,8 +67,20 @@ public sealed class RunSqlCommandHandler(
         catch (Exception ex)
         {
             await tx.RollbackAsync(ct);
-            logger.LogError(ex, "Erro no SQL console (escrita) — rollback aplicado.");
-            return Result.Error<SqlConsoleResultViewModel>(GenericMessages.INVALID_OPERATION, ex.Message);
+            var detail = Flatten(ex);
+            // Loga a cadeia COMPLETA de exceções no console do servidor (SQLite/EF
+            // costumam esconder o erro real na InnerException).
+            logger.LogError(ex, "Erro no SQL console (escrita) — rollback aplicado. Detalhe: {Detail}", detail);
+            return Result.Error<SqlConsoleResultViewModel>(GenericMessages.INVALID_OPERATION, detail);
         }
+    }
+
+    // Achata Message + todas as InnerException numa única string legível.
+    private static string Flatten(Exception ex)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (var e = ex; e is not null; e = e.InnerException)
+            sb.Append(e.GetType().Name).Append(": ").AppendLine(e.Message);
+        return sb.ToString().TrimEnd();
     }
 }

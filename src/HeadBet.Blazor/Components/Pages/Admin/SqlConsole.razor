@@ -34,6 +34,18 @@
     </div>
 </MudPaper>
 
+@if (_log.Count > 0)
+{
+    <MudPaper Elevation="2" Class="pa-4 mb-3">
+        <div class="d-flex justify-space-between align-center mb-2">
+            <MudText Typo="Typo.subtitle2">Log (também no console do navegador — F12)</MudText>
+            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.DeleteSweep"
+                       OnClick="@(() => _log.Clear())">Limpar log</MudButton>
+        </div>
+        <pre style="max-height:280px; overflow:auto; font-size:.8rem; white-space:pre-wrap; margin:0;">@string.Join("\n", _log)</pre>
+    </MudPaper>
+}
+
 @if (_result is not null)
 {
     <MudPaper Elevation="2" Class="pa-4">
@@ -120,6 +132,7 @@
     private bool _showJson;
     private string? _json;
     private SqlConsoleResultViewModel? _result;
+    private readonly List<string> _log = [];
 
     private static readonly List<BreadcrumbItem> _crumbs =
     [
@@ -137,11 +150,17 @@
     {
         if (string.IsNullOrWhiteSpace(_sql))
         {
+            await Log($"Clique em Executar, mas o campo SQL chegou VAZIO ao servidor (len={_sql?.Length ?? 0}). " +
+                      "O texto colado não foi transmitido pelo circuito — típico de mensagem acima do limite do SignalR.", error: true);
             Snackbar.Add("Digite um comando SQL.", Severity.Warning);
             return;
         }
 
         var isRead = SqlStatementClassifier.IsReadOnly(_sql);
+        var bytes = System.Text.Encoding.UTF8.GetByteCount(_sql);
+        await Log($"Executar: {_sql.Length:N0} chars / {bytes:N0} bytes · caminho={(isRead ? "LEITURA" : "ESCRITA")}");
+        if (bytes > 30_000)
+            await Log($"AVISO: {bytes:N0} bytes está perto/acima do limite padrão de 32 KB do SignalR — pode derrubar o circuito antes de chegar ao servidor.", error: true);
 
         if (!isRead)
         {
@@ -154,7 +173,10 @@
             var dialog = await Dialog.ShowAsync<ConfirmDialog>("Confirmar escrita no banco", parameters);
             var dr = await dialog.Result;
             if (dr is null || dr.Canceled)
+            {
+                await Log("Cancelado pelo usuário.");
                 return;
+            }
         }
 
         _busy = true;
@@ -166,9 +188,15 @@
             {
                 _result = await Bus.SendAsync(new RunSqlQuery(_sql));
                 if (_result.Error is not null)
+                {
+                    await Log("ERRO (leitura): " + _result.Error, error: true);
                     Snackbar.Add(_result.Error, Severity.Error);
+                }
                 else
+                {
+                    await Log($"OK (leitura): {_result.Rows.Count} linha(s), {_result.ElapsedMs} ms.");
                     BuildJson();
+                }
             }
             else
             {
@@ -176,14 +204,34 @@
                 if (!op.IsValid)
                 {
                     foreach (var n in op.Notifications ?? [])
+                    {
+                        await Log("ERRO (escrita): " + n.Message, error: true);
                         Snackbar.AddNotification(n, Translator);
+                    }
                     return;
                 }
                 _result = op.Data;
+                await Log($"OK (escrita): {_result?.AffectedRows ?? 0} linha(s) afetada(s), {_result?.ElapsedMs ?? 0} ms.");
                 Snackbar.Add($"{_result?.AffectedRows ?? 0} linha(s) afetada(s).", Severity.Success);
             }
         }
+        catch (Exception ex)
+        {
+            // Captura qualquer exceção não tratada (ex.: falha de serialização/circuito).
+            for (var e = ex; e is not null; e = e.InnerException)
+                await Log($"EXCEÇÃO: {e.GetType().Name}: {e.Message}", error: true);
+            Snackbar.Add("Falha inesperada — veja o log abaixo / console (F12).", Severity.Error);
+        }
         finally { _busy = false; }
+    }
+
+    // Escreve no painel da página E no console do navegador (F12).
+    private async Task Log(string msg, bool error = false)
+    {
+        _log.Add($"{DateTime.Now:HH:mm:ss.fff}  {msg}");
+        if (_log.Count > 300) _log.RemoveRange(0, _log.Count - 300);
+        try { await JS.InvokeVoidAsync(error ? "console.error" : "console.log", "[SQL Console] " + msg); }
+        catch { /* JS indisponível (prerender/desconectado) — o painel ainda mostra */ }
     }
 
     private void ClearAll()
